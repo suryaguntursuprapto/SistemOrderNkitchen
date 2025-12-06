@@ -1,61 +1,126 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# N-Kitchen - Sistem Pemesanan Pempek
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistem manajemen pemesanan makanan berbasis web untuk N-Kitchen, dengan fitur lengkap untuk pelanggan dan admin.
 
-## About Laravel
+## 📋 Persyaratan Sistem
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Pastikan server Anda memenuhi persyaratan berikut:
+*   **PHP**: ^8.2
+*   **Database**: MySQL / MariaDB
+*   **Composer**: Versi terbaru
+*   **Node.js & NPM**: Untuk compile assets
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 🛠️ Instalasi
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Ikuti langkah-langkah berikut untuk menjalankan project di local environment:
 
-## Learning Laravel
+1.  **Clone Repository**
+    ```bash
+    git clone [url-repository]
+    cd SistemPempek
+    ```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+2.  **Install PHP Dependencies**
+    ```bash
+    composer install
+    ```
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+3.  **Install & Compile Frontend Assets**
+    ```bash
+    npm install
+    npm run build
+    ```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+4.  **Konfigurasi Environment**
+    Salin file `.env.example` menjadi `.env` dan sesuaikan konfigurasi database serta API keys.
+    ```bash
+    cp .env.example .env
+    php artisan key:generate
+    ```
 
-## Laravel Sponsors
+5.  **Migrasi Database**
+    Jalankan migrasi untuk membuat tabel-tabel database.
+    ```bash
+    php artisan migrate
+    ```
+    *Opsional: Jalankan seeder untuk data dummy*
+    ```bash
+    php artisan db:seed
+    ```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+6.  **Jalankan Server**
+    ```bash
+    php artisan serve
+    ```
 
-### Premium Partners
+## 📦 Dependencies Utama
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Project ini menggunakan library berikut:
 
-## Contributing
+| Package | Deskripsi |
+| :--- | :--- |
+| `laravel/framework` | Framework PHP utama (v12.x) |
+| `laravel/ui` | Scaffolding untuk UI auth (Bootstrap/Tailwind) |
+| `laravel/socialite` | Autentikasi via Social Media (Google Login) |
+| `midtrans/midtrans-php` | Payment Gateway Intergration |
+| `maatwebsite/excel` | Export/Import data Excel |
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 📑 Daftar Halaman & Fitur
 
-## Code of Conduct
+### 👤 Halaman Pelanggan (Customer)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+#### 1. Beranda & Menu
+*   **Landing Page** (`/`): Menampilkan banner promo, kategori, dan produk unggulan.
+*   **Menu** (`/menu`): Katalog lengkap produk dengan filter kategori dan pencarian.
+*   **Detail Produk** (`/menu/{id}`): Informasi detail produk, harga, dan tombol tambah ke keranjang.
 
-## Security Vulnerabilities
+#### 2. Transaksi
+*   **Keranjang** (`/cart`): Mengelola item yang akan dibeli.
+*   **Checkout** (`/checkout`): Pengisian alamat pengiriman dan pemilihan metode pembayaran.
+*   **Pembayaran** (`/payment/{order}`): Integrasi Midtrans untuk pembayaran aman.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+#### 3. Akun & Riwayat
+*   **Riwayat Pesanan** (`/customer/orders`): Daftar semua pesanan dengan status terkini.
+*   **Detail Pesanan** (`/customer/orders/{id}`):
+    *   Informasi status (Menunggu, Diproses, Dalam Perjalanan, Selesai).
+    *   **Tracking Number**: Tampilan resi pengiriman dengan fitur copy.
+    *   **Konfirmasi Terima**: Tombol untuk konfirmasi pesanan telah sampai.
+*   **Profil** (`/profile`): Mengelola informasi akun.
 
-## License
+#### 4. Layanan Pelanggan
+*   **Live Chat** (`/customer/chat`):
+    *   Chat real-time dengan Admin.
+    *   **Chatbot Otomatis**: Menjawab pertanyaan umum (harga, menu, jam buka, dll).
+    *   Indikator status admin (Online/Offline).
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+### 👑 Halaman Admin
+
+#### 1. Dashboard
+*   **Dashboard Utama** (`/admin/dashboard`): Statistik ringkas penjualan, pesanan baru, dan pendapatan.
+
+#### 2. Manajemen Pesanan
+*   **Kelola Pesanan** (`/admin/order`):
+    *   **Filter Canggih**: Status, Periode Waktu (Harian/Mingguan/dll), Pencarian.
+    *   **Update Status**: Mengubah status pesanan secara cepat.
+    *   **Input Resi**: Memasukkan nomor resi yang otomatis mengubah status ke "Dalam Perjalanan".
+*   **Detail Pesanan** (`/admin/order/{id}`): Informasi lengkap pemesan, produk, dan pembayaran.
+
+#### 3. Manajemen Produk
+*   **Kategori** (`/admin/category`): Tambah/Edit/Hapus kategori menu.
+*   **Menu** (`/admin/menu`): Manajemen produk, harga, stok, dan foto.
+
+#### 4. Layanan Pelanggan
+*   **Pusat Pesan** (`/admin/message`):
+    *   Daftar percakapan dari semua pelanggan.
+    *   Indikator pesan belum dibaca.
+    *   Balas pesan secara real-time.
+
+#### 5. Laporan
+*   **Laporan Penjualan**: Rekapitulasi transaksi yang bisa diexport ke Excel.
+
+## 🔑 Akun Demo (Jika Menggunakan Seeder)
+
+*   **Admin**: `admin@gmail.com` / `password`
+*   **Customer**: `customer@gmail.com` / `password`
