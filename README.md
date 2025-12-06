@@ -1,4 +1,4 @@
-# N-Kitchen - Sistem Pemesanan Pempek
+# N-Kitchen - Sistem Pemesanan Makanan
 
 Sistem manajemen pemesanan makanan berbasis web untuk N-Kitchen, dengan fitur lengkap untuk pelanggan dan admin.
 
