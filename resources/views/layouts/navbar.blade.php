@@ -89,12 +89,12 @@
                         </svg>
                         Riwayat
                     </a>
-                    <a href="{{ route('customer.message.index') }}" 
-                       class="group flex items-center px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 {{ Request::routeIs('customer.message.*') ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50' }}">
-                        <svg class="w-4 h-4 mr-2 {{ Request::routeIs('customer.message.*') ? 'text-orange-600' : 'text-gray-400 group-hover:text-orange-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <a href="{{ route('customer.chat.index') }}" 
+                       class="group flex items-center px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 {{ Request::routeIs('customer.chat.*') || Request::routeIs('customer.message.*') ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50' }}">
+                        <svg class="w-4 h-4 mr-2 {{ Request::routeIs('customer.chat.*') || Request::routeIs('customer.message.*') ? 'text-orange-600' : 'text-gray-400 group-hover:text-orange-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                         </svg>
-                        Pesan
+                        Chat
                     </a>
                 </div>
                 @endif
@@ -104,7 +104,7 @@
             <div class="flex items-center space-x-4">
                 <!-- User Info -->
                 <div class="hidden md:flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-gradient-to-r from-orange-400 to-red-400 rounded-full flex items-center justify-center">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background: linear-gradient(to right, #fb923c, #f87171);">
                         <span class="text-sm font-medium text-white">
                             {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                         </span>
@@ -184,6 +184,13 @@
                         </svg>
                         Pesan
                     </a>
+                    <a href="{{ route('admin.report.index') }}" 
+                       class="flex items-center px-4 py-3 rounded-xl text-base font-medium {{ Request::routeIs('admin.report.*') || Request::routeIs('admin.journal.*') || Request::routeIs('admin.ledger.*') || Request::routeIs('admin.coa.*') ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50' }} transition-all duration-300">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2h14a2 2 0 002-2z"></path>
+                        </svg>
+                        Laporan
+                    </a>
                 @else
                     <a href="{{ route('customer.dashboard') }}" 
                        class="flex items-center px-4 py-3 rounded-xl text-base font-medium {{ Request::routeIs('customer.dashboard') ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50' }} transition-all duration-300">
@@ -213,19 +220,19 @@
                         </svg>
                         Riwayat Pemesanan
                     </a>
-                    <a href="{{ route('customer.message.index') }}" 
-                       class="flex items-center px-4 py-3 rounded-xl text-base font-medium {{ Request::routeIs('customer.message.*') ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50' }} transition-all duration-300">
+                    <a href="{{ route('customer.chat.index') }}" 
+                       class="flex items-center px-4 py-3 rounded-xl text-base font-medium {{ Request::routeIs('customer.chat.*') || Request::routeIs('customer.message.*') ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50' }} transition-all duration-300">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                         </svg>
-                        Pesan
+                        Chat
                     </a>
                 @endif
 
                 <!-- User Info Mobile -->
                 <div class="md:hidden mt-4 pt-4 border-t border-gray-200">
                     <div class="flex items-center px-4 py-3">
-                        <div class="w-10 h-10 bg-gradient-to-r from-orange-400 to-red-400 rounded-full flex items-center justify-center mr-3">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center mr-3" style="background: linear-gradient(to right, #fb923c, #f87171);">
                             <span class="text-sm font-medium text-white">
                                 {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                             </span>

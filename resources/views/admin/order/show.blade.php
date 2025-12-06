@@ -89,6 +89,61 @@
                     <p class="text-sm text-gray-600 bg-gray-50 rounded p-3">{{ $order->delivery_address }}</p>
                 </div>
                 
+                <!-- Shipping Info & Tracking Number -->
+                <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 class="font-medium text-gray-900 mb-3 flex items-center">
+                        🚚 Informasi Pengiriman
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="text-sm">
+                            <span class="text-gray-600">Kurir:</span>
+                            <span class="text-gray-900 font-medium ml-2">{{ strtoupper($order->courier ?? 'Belum dipilih') }}</span>
+                        </div>
+                        <div class="text-sm">
+                            <span class="text-gray-600">Layanan:</span>
+                            <span class="text-gray-900 font-medium ml-2">{{ $order->shipping_service ?? '-' }}</span>
+                        </div>
+                        <div class="text-sm">
+                            <span class="text-gray-600">Ongkir:</span>
+                            <span class="text-gray-900 font-medium ml-2">Rp {{ number_format($order->shipping_cost ?? 0, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="text-sm">
+                            <span class="text-gray-600">Berat Total:</span>
+                            <span class="text-gray-900 font-medium ml-2">{{ number_format($order->total_weight ?? 0, 0, ',', '.') }} gram</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Tracking Number Form -->
+                    <div class="border-t border-blue-200 pt-4 mt-4">
+                        <form action="{{ route('admin.order.update', $order) }}" method="POST" class="flex flex-col sm:flex-row gap-3">
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="status" value="{{ $order->status }}">
+                            <div class="flex-1">
+                                <label class="block text-sm text-gray-700 mb-1 font-medium">📦 No. Resi / Tracking Number</label>
+                                <input type="text" 
+                                       name="tracking_number" 
+                                       value="{{ $order->tracking_number }}"
+                                       placeholder="Masukkan nomor resi pengiriman..."
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900">
+                            </div>
+                            <div class="sm:self-end">
+                                <button type="submit" 
+                                        class="w-full sm:w-auto px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors shadow-md">
+                                    💾 Simpan Resi
+                                </button>
+                            </div>
+                        </form>
+                        @if($order->tracking_number)
+                        <div class="mt-3 p-3 bg-green-100 border border-green-300 rounded-lg">
+                            <p class="text-sm text-green-800">
+                                ✅ No. Resi tersimpan: <strong class="font-mono">{{ $order->tracking_number }}</strong>
+                            </p>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+                
                 @if($order->notes)
                     <div class="mt-6">
                         <h4 class="font-medium text-gray-900 mb-3">Catatan</h4>

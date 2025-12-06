@@ -2,7 +2,6 @@
 
 @section('content')
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-    <!-- Header -->
     <div class="mb-8">
         <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 p-8 text-white shadow-2xl">
             <div class="absolute inset-0 bg-black opacity-10"></div>
@@ -24,7 +23,6 @@
         </div>
     </div>
 
-    <!-- Form Card -->
     <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
         <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-8 py-6 border-b border-gray-200">
             <h2 class="text-2xl font-bold text-gray-900 flex items-center">
@@ -41,9 +39,7 @@
             @csrf
             
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Left Column -->
                 <div class="space-y-6">
-                    <!-- Name -->
                     <div class="group">
                         <label for="name" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
                             <svg class="w-4 h-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,7 +64,6 @@
                         @enderror
                     </div>
 
-                    <!-- Category -->
                     <div class="group">
                         <label for="category" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
                             <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,7 +93,32 @@
                         @enderror
                     </div>
 
-                    <!-- Price -->
+                    <div class="group">
+                        <label for="weight" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                            <svg class="w-4 h-4 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Berat per Item (Gram)
+                        </label>
+                        <div class="relative">
+                            <input type="number" 
+                                name="weight" 
+                                id="weight" 
+                                class="w-full pl-6 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 group-hover:border-indigo-300 @error('weight') border-red-500 @enderror" 
+                                value="{{ old('weight', $menu->weight ?? 200) }}" 
+                                placeholder="200"
+                                required min="1">
+                            <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">gram</span>
+                        </div>
+                        @error('weight')
+                            <p class="text-red-500 text-sm mt-2 flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                {{ $message }}
+                            </p>
+                        @enderror
+                    </div>
                     <div class="group">
                         <label for="price" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
                             <svg class="w-4 h-4 text-yellow-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -128,7 +148,6 @@
                         @enderror
                     </div>
 
-                    <!-- Availability -->
                     <div class="group">
                         <label class="block text-sm font-semibold text-gray-700 mb-3 flex items-center">
                             <svg class="w-4 h-4 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,9 +184,7 @@
                     </div>
                 </div>
 
-                <!-- Right Column -->
                 <div class="space-y-6">
-                    <!-- Description -->
                     <div class="group">
                         <label for="description" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
                             <svg class="w-4 h-4 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,7 +208,6 @@
                         @enderror
                     </div>
 
-                    <!-- Image Upload -->
                     <div class="group">
                         <label for="image" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
                             <svg class="w-4 h-4 text-pink-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -232,7 +248,6 @@
                 </div>
             </div>
 
-            <!-- Submit Buttons -->
             <div class="flex items-center justify-between pt-8 mt-8 border-t border-gray-200">
                 <a href="{{ route('admin.menu.index') }}" 
                    class="px-6 py-3 text-gray-600 font-semibold rounded-xl border border-gray-300 hover:bg-gray-50 transform hover:scale-105 transition-all duration-200 flex items-center space-x-2">
@@ -243,7 +258,7 @@
                 </a>
                 
                 <button type="submit" 
-                        class="px-8 py-3 bg-Green-500 text-black font-semibold rounded-xl transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center space-x-2">
+                        class="px-8 py-3 bg-indigo-500 text-white font-semibold rounded-xl transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center space-x-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>

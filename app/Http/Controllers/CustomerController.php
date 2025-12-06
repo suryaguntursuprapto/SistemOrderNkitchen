@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\Menu;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -13,6 +14,8 @@ use App\Services\AccountingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http; 
+use Illuminate\Support\Facades\Log; 
 use Illuminate\Routing\Controller;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Bus\DispatchesJobs;
@@ -37,6 +40,177 @@ class CustomerController extends Controller
             return $next($request);
         });
     }
+
+    // --- API WILAYAH & ONGKIR (KOMERCE) ---
+
+    private function getKomerceHeaders()
+    {
+        // PERBAIKAN: Menggunakan header 'key' untuk API V1/V2
+        return [
+            'key' => config('services.rajaongkir.key'), 
+            'Accept' => 'application/json',
+        ];
+    }
+
+    /**
+     * ❌ DEPRECATED: Tidak didukung Komerce.
+     */
+    public function getProvinces()
+    {
+         Log::warning('Deprecated API Call: getProvinces not supported by Komerce. Use search.');
+         return response()->json(['error' => 'Komerce API requires Search for regions.'], 500); 
+    }
+
+    /**
+     * ❌ DEPRECATED: Tidak didukung Komerce.
+     */
+    public function getCities($province_id)
+    {
+         Log::warning('Deprecated API Call: getCities not supported by Komerce. Use search.');
+         return response()->json(['error' => 'Komerce API requires Search for regions.'], 500);
+    }
+    
+    /**
+     * Calculate Shipping Cost.
+     */
+    // app/Http/Controllers/CustomerController.php
+    // app/Http/Controllers/CustomerController.php (di dalam checkShippingCost)
+
+    public function checkShippingCost(Request $request)
+    {
+        // 💡 PERBAIKAN: Baca data dari JSON body menggunakan $request->json()
+        $payload = $request->json();
+
+        $shipper_id = config('services.rajaongkir.origin_city'); 
+        
+        // Baca data dari payload JSON:
+        $receiver_id = $payload->get('destination_id');
+        $weight = max(1, (int)$payload->get('weight')); 
+        $courier = $payload->get('courier');
+        $item_value = $payload->get('item_value') ?? 0;
+
+        
+        // Cek Origin City
+        if (empty($shipper_id)) {
+            \Log::error('Komerce API (Cost) Failed: Origin city ID is missing in .env');
+            return response()->json(['error' => 'ID Kota Asal (Origin City) tidak diatur di konfigurasi.'], 500);
+        }
+        
+        // 🛑 KONDISI YANG MENCEGAH API CALL JIKA KOSONG (dari debugging sebelumnya)
+        if (empty($receiver_id) || empty($courier)) {
+             \Log::warning('SHIPPING ABORTED: Destination ID or Courier is missing in payload.');
+             return response()->json(['error' => 'Pilihan Kota atau Kurir Belum Lengkap.'], 400); 
+        }
+
+        try {
+            // PERBAIKAN: Menggunakan endpoint calculate yang BENAR sesuai dokumentasi Komerce
+            $endpoint = config('services.rajaongkir.base_url') . '/api/v1/calculate/domestic-cost';
+            
+            // Debug log untuk melihat nilai yang dikirim
+            \Log::info('Komerce API (Cost) Request', [
+                'endpoint' => $endpoint,
+                'origin' => $shipper_id,
+                'destination' => $receiver_id,
+                'weight' => $weight,
+                'courier' => $courier
+            ]);
+            
+            // 🛑 SOLUSI KRITIS: Menggunakan asForm() dengan key KAPITAL
+            $response = Http::withHeaders($this->getKomerceHeaders())
+                            ->asForm() 
+                            ->post($endpoint, [
+                                
+                                // PERBAIKAN KRITIS: Kirim key KAPITAL untuk memenuhi validasi API
+                                'origin' => (string)$shipper_id, 
+                                'destination' => (string)$receiver_id,
+                                'weight' => (int)$weight, 
+                                
+                                'courier' => $courier, 
+                                'price' => 'lowest'
+                            ]);
+
+               if (!$response->successful()) {
+                \Log::error('Komerce API (Cost) Failed: ' . $response->status() . ' - ' . $response->body());
+                
+                $status = $response->status();
+                $errorBody = $response->json();
+                
+                $message = $errorBody['message'] ?? $errorBody['meta']['message'] ?? 'Gagal mengambil biaya. Cek Izin API Key atau Berat Barang.';
+                
+                // Jika error 422 muncul, ini berarti API Komerce menolak format data courier
+                return response()->json(['error' => "API Error ({$status}): {$message}"], 500);
+            }
+
+            $data = $response->json();
+            $results = $data['data'] ?? ($data['results'] ?? []); 
+
+            return response()->json($results);
+
+        } catch (\Exception $e) {
+            \Log::error('HTTP Client Exception (Cost): ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * 🔎 NEW: Search Destination/Region by Keyword (Komerce Direct Search Method)
+     */
+    // app/Http/Controllers/CustomerController.php (di dalam searchDestination)
+
+    public function searchDestination(Request $request)
+    {
+        $keyword = $request->keyword;
+        \Log::info('DESTINATION SEARCH: Keyword received', ['keyword' => $keyword]);
+        if (empty($keyword) || strlen($keyword) < 3) {
+            return response()->json(['results' => []]);
+        }
+
+        try {
+            $endpoint = config('services.rajaongkir.base_url') . '/api/v1/destination/domestic-destination';
+            
+            $response = Http::withHeaders($this->getKomerceHeaders())->get($endpoint, [
+                'search' => $keyword, 
+                'limit' => 20, 
+                'offset' => 0
+            ]);
+
+            if (!$response->successful()) {
+                \Log::error('Komerce API (Search) Failed: ' . $response->status() . ' - ' . $response->body());
+                
+                // 💡 PERBAIKAN: Jika 404, kembalikan array kosong agar Select2 tidak error
+                if ($response->status() == 404) {
+                    return response()->json(['results' => []]);
+                }
+                
+                $errorBody = $response->json();
+                $message = $errorBody['message'] ?? 'Gagal koneksi API Komerce (Status: ' . $response->status() . ').';
+                return response()->json(['results' => [], 'error' => $message], 500);
+            }
+
+            $data = $response->json();
+            $results = $data['data'] ?? []; 
+            
+            $formattedResults = collect($results)->map(function ($item) {
+                // Kunci yang dikembalikan dari API V2 adalah 'id' (Subdistrict ID) dan 'label'.
+                // Kita harus memetakan 'label' ke 'text' untuk Select2.
+                return [
+                    'id' => $item['id'] ?? null, 
+                    'text' => $item['label'] ?? 'Alamat Tidak Dikenal', 
+                    'city_id' => $item['city_name'] ?? null,
+                ];
+            })->filter(function($item) {
+                return $item['id'] !== null; 
+            })->values()->all();
+
+            return response()->json(['results' => $formattedResults]);
+
+        } catch (\Exception $e) {
+            \Log::error('HTTP Client Exception (Search): ' . $e->getMessage());
+            return response()->json(['results' => [], 'error' => 'Gagal koneksi ke server API. (Jaringan)'], 500);
+        }
+    }
+
+    // --- FITUR UTAMA ---
 
     public function dashboard()
     {
@@ -69,6 +243,8 @@ class CustomerController extends Controller
         return view('customer.order.index', compact('menus'));
     }
 
+    // app/Http/Controllers/CustomerController.php
+
     public function orderCreate(Request $request)
     {
         // Validate cart data from session or request
@@ -92,20 +268,30 @@ class CustomerController extends Controller
         
         $validCartItems = [];
         $totalAmount = 0;
+        $totalWeight = 0; 
+        $itemValue = 0; // 💡 PERBAIKAN: Deklarasi dan Inisialisasi $itemValue
         
         foreach ($cartItems as $item) {
             if ($menuData->has($item['id'])) {
                 $menu = $menuData->get($item['id']);
+                
+                // Hitung total berat
+                $itemWeight = $menu->weight ?? 200; 
+                $totalWeight += ($itemWeight * $item['quantity']);
+                
                 $validItem = [
                     'id' => $menu->id,
                     'name' => $menu->name,
                     'price' => $menu->price,
                     'quantity' => $item['quantity'],
+                    'weight' => $itemWeight, // Berat per item dalam gram
+                    'total_weight' => $itemWeight * $item['quantity'], // Total berat item
                     'image' => $menu->image ? Storage::url($menu->image) : null,
                     'subtotal' => $menu->price * $item['quantity']
                 ];
                 $validCartItems[] = $validItem;
                 $totalAmount += $validItem['subtotal'];
+                $itemValue += $validItem['subtotal']; // 💡 PERBAIKAN: Hitung itemValue (Total nilai barang)
             }
         }
         
@@ -126,20 +312,61 @@ class CustomerController extends Controller
         // Store cart in session for checkout process
         session(['checkout_cart' => $validCartItems]);
         
-        // FIX: Pastikan variable ini dikirim ke view
-        return view('customer.order.create', compact('validCartItems', 'totalAmount', 'paymentMethods'));
+        // 💡 PERBAIKAN: Mengirim $itemValue, $totalWeight, dan $validCartItems ke view
+        return view('customer.order.create', compact('validCartItems', 'totalAmount', 'paymentMethods', 'totalWeight', 'itemValue'));
     }
 
     public function orderStore(Request $request)
     {
+        // 1. Validasi Input Lengkap dengan aturan yang lebih ketat
         $validated = $request->validate([
-            'delivery_address' => 'required|string',
-            'phone' => 'required|string',
-            'notes' => 'nullable|string|max:500',
-            'payment_method_id' => 'required|exists:payment_methods,id'
+            'recipient_name' => [
+                'required', 
+                'string', 
+                'min:3', 
+                'max:100',
+                'regex:/^[a-zA-Z\s\.]+$/' // Hanya huruf, spasi, dan titik
+            ],
+            'delivery_address' => [
+                'required', 
+                'string', 
+                'min:15', 
+                'max:500'
+            ],
+            'phone' => [
+                'required', 
+                'string',
+                'regex:/^(\+62|62|0)[0-9]{9,13}$/' // Format Indonesia: +62/62/0 diikuti 9-13 digit
+            ],
+            'notes' => ['nullable', 'string', 'max:500'],
+            'payment_method_id' => ['required', 'exists:payment_methods,id'],
+            
+            // Validasi Data Pengiriman
+            'destination_id' => ['required', 'string'], // Destination ID Komerce
+            'courier' => ['required', 'string'],
+            'shipping_service' => ['required', 'string'],
+            'shipping_cost' => ['required', 'numeric', 'min:0'],
+            'total_weight' => ['required', 'integer', 'min:1'],
+        ], [
+            // Custom error messages dalam Bahasa Indonesia
+            'recipient_name.required' => 'Nama penerima wajib diisi.',
+            'recipient_name.min' => 'Nama penerima minimal 3 karakter.',
+            'recipient_name.max' => 'Nama penerima maksimal 100 karakter.',
+            'recipient_name.regex' => 'Nama penerima hanya boleh berisi huruf, spasi, dan titik.',
+            
+            'delivery_address.required' => 'Alamat pengiriman wajib diisi.',
+            'delivery_address.min' => 'Alamat pengiriman minimal 15 karakter. Mohon lengkapi dengan detail.',
+            'delivery_address.max' => 'Alamat pengiriman maksimal 500 karakter.',
+            
+            'phone.required' => 'Nomor telepon wajib diisi.',
+            'phone.regex' => 'Format nomor telepon tidak valid. Gunakan format: 08xx, 628xx, atau +628xx.',
+            
+            'destination_id.required' => 'Silakan pilih kota/kecamatan tujuan.',
+            'courier.required' => 'Silakan pilih kurir pengiriman.',
+            'shipping_service.required' => 'Silakan pilih layanan pengiriman.',
         ]);
 
-        // Get cart items from session
+        // 2. Cek Keranjang
         $cartItems = session('checkout_cart');
         
         if (empty($cartItems)) {
@@ -147,21 +374,15 @@ class CustomerController extends Controller
                 ->with('error', 'Keranjang belanja kosong!');
         }
 
+        // 3. Ambil Metode Pembayaran (Error Check)
         try {
             $paymentMethod = PaymentMethod::findOrFail($validated['payment_method_id']);
-            \Log::info('Payment method selected', [
-                'payment_method_id' => $paymentMethod->id,
-                'payment_method_name' => $paymentMethod->name,
-                'payment_method_type' => $paymentMethod->type
-            ]);
         } catch (\Exception $e) {
-            \Log::error('Payment method not found', [
-                'payment_method_id' => $validated['payment_method_id']
-            ]);
+            \Log::error('Payment method not found', ['payment_method_id' => $validated['payment_method_id']]);
             return back()->with('error', 'Metode pembayaran tidak valid!');
         }
 
-        // Validate menu availability again
+        // 4. Validasi Ulang Menu Availability
         $menuIds = array_column($cartItems, 'id');
         $menus = Menu::whereIn('id', $menuIds)->where('is_available', true)->get();
         $menuData = $menus->keyBy('id');
@@ -177,25 +398,37 @@ class CustomerController extends Controller
                 // Generate order number
                 $orderNumber = 'ORD-' . date('Ymd') . '-' . str_pad(Order::whereDate('created_at', today())->count() + 1, 4, '0', STR_PAD_LEFT);
                 
-                // Calculate total amount from current prices
-                $totalAmount = 0;
+                // Calculate total amount (Subtotal Menu)
+                $subtotalMenu = 0;
                 foreach ($cartItems as $item) {
                     $menu = $menuData->get($item['id']);
-                    $totalAmount += $menu->price * $item['quantity'];
+                    $subtotalMenu += $menu->price * $item['quantity'];
                 }
                 
-                // Create order
+                // 💡 PERBAIKAN PENTING: Hitung Grand Total (Subtotal Menu + Ongkir)
+                $grandTotal = $subtotalMenu + $validated['shipping_cost'];
+                
+                // 5. Create Order
                 $order = Order::create([
                     'user_id' => auth()->id(),
                     'order_number' => $orderNumber,
-                    'total_amount' => $totalAmount,
+                    'total_amount' => $grandTotal, // <-- MENGGUNAKAN GRAND TOTAL (MENU + ONGKIR)
+                    
+                    'recipient_name' => $validated['recipient_name'], 
                     'delivery_address' => $validated['delivery_address'],
                     'phone' => $validated['phone'],
                     'notes' => $validated['notes'],
-                    'status' => 'pending'
+                    'status' => 'pending',
+                    
+                    // <-- DATA PENGIRIMAN DITAMBAHKAN DENGAN BENAR DI SINI -->
+                    'city_id' => $validated['destination_id'], 
+                    'courier' => $validated['courier'],
+                    'shipping_service' => $validated['shipping_service'],
+                    'shipping_cost' => $validated['shipping_cost'], // <-- ONGKIR DITAMBAH SEBAGAI FIELD TERPISAH
+                    'total_weight' => $validated['total_weight'],
                 ]);
 
-                // Create order items
+                // 6. Create order items
                 foreach ($cartItems as $item) {
                     $menu = $menuData->get($item['id']);
                     OrderItem::create([
@@ -207,8 +440,8 @@ class CustomerController extends Controller
                     ]);
                 }
 
-                // Create payment record dengan error handling
-                try {
+                // 7. Create payment record
+               try {
                     Payment::create([
                         'order_id' => $order->id,
                         'payment_method_id' => $validated['payment_method_id'],
@@ -218,7 +451,6 @@ class CustomerController extends Controller
                 } catch (\Exception $e) {
                     \Log::error('Failed to create payment record', [
                         'order_id' => $order->id,
-                        'payment_method_id' => $validated['payment_method_id'],
                         'error' => $e->getMessage()
                     ]);
                     throw new \Exception('Gagal membuat record pembayaran: ' . $e->getMessage());
@@ -227,14 +459,9 @@ class CustomerController extends Controller
                 return $order;
             });
 
-            // Clear checkout cart from session
-            session()->forget('checkout_cart');
+            // ... (Clear session & Redirect) ...
 
-            \Log::info('Order created successfully', [
-                'order_id' => $order->id,
-                'order_number' => $order->order_number,
-                'payment_method_type' => $paymentMethod->type
-            ]);
+            session()->forget('checkout_cart');
 
             // Redirect berdasarkan metode pembayaran
             if ($paymentMethod->type === 'midtrans') {
@@ -277,56 +504,10 @@ class CustomerController extends Controller
                     ->with('error', 'Gagal memuat data pesanan.');
             }
             
-            // Pastikan ada payment record, jika tidak buat baru
-            if (!$order->payment) {
-                \Log::info('Creating missing payment record', [
-                    'order_id' => $order->id
-                ]);
-                
-                try {
-                    // Cari payment method Midtrans
-                    $midtransPaymentMethod = PaymentMethod::where('name', 'LIKE', '%midtrans%')
-                                                          ->orWhere('type', 'midtrans')
-                                                          ->first();
-                    
-                    if (!$midtransPaymentMethod) {
-                        // Buat payment method Midtrans jika belum ada
-                        $midtransPaymentMethod = PaymentMethod::create([
-                            'name' => 'Midtrans Payment Gateway',
-                            'type' => 'midtrans',
-                            'is_active' => true,
-                            'description' => 'Payment via Midtrans (Credit Card, Bank Transfer, E-Wallet)'
-                        ]);
-                        
-                        \Log::info('Created Midtrans payment method', [
-                            'payment_method_id' => $midtransPaymentMethod->id
-                        ]);
-                    }
-                    
-                    // Buat payment record
-                    $payment = Payment::create([
-                        'order_id' => $order->id,
-                        'payment_method_id' => $midtransPaymentMethod->id,
-                        'amount' => $order->total_amount + 5000, // Tambah ongkir
-                        'status' => 'pending'
-                    ]);
-                    
-                    // Reload order dengan payment baru
-                    $order->load(['payment.paymentMethod']);
-                    
-                    \Log::info('Payment record created successfully', [
-                        'payment_id' => $payment->id
-                    ]);
-                    
-                } catch (\Exception $e) {
-                    \Log::error('Failed to create payment record', [
-                        'order_id' => $order->id,
-                        'error' => $e->getMessage()
-                    ]);
-                    return redirect()->route('customer.order.show', $order)
-                        ->with('error', 'Gagal membuat record pembayaran: ' . $e->getMessage());
-                }
-            }
+            // 💡 PERBAIKAN SINKRONISASI DATA: Refresh model untuk mendapatkan total_amount dan shipping_cost yang baru
+            $order->refresh(); 
+
+            // Pastikan ada payment record, jika tidak buat baru (KODE INI SUDAH DIHAPUS BERDASARKAN DEBUGGING SEBELUMNYA)
             
             // Validasi data order sebelum membuat transaksi
             if ($order->orderItems->isEmpty()) {
@@ -368,6 +549,7 @@ class CustomerController extends Controller
                     'order_id' => $order->id
                 ]);
                 
+                // MidtransService akan menghitung line item (termasuk ongkir)
                 $snapToken = $this->midtransService->createTransaction($order);
                 
                 if (empty($snapToken)) {
@@ -586,12 +768,26 @@ class CustomerController extends Controller
                     ]);
                 }
             });
-            // ===== SAMBUNGAN AKUNTANSI =====
+            // ===== PENTING: PANGGIL WHATSAPP NOTIFIKASI DI SINI =====
             // Jika status BARU adalah confirmed, DAN status LAMA BUKAN confirmed
-            // (Agar tidak dobel jurnal)
             if ($status === 'confirmed' && !$wasAlreadyConfirmed) {
+                // Logika Akuntansi (sudah ada)
                 \Log::info("Memanggil AccountingService untuk Order: {$order->order_number}");
                 $this->accountingService->recordSale($order);
+                
+                // 🔔 NEW: Panggil notifikasi WhatsApp Admin
+                $order->refresh(); // Ambil data Order terbaru termasuk alamat pengiriman
+                
+                // Debug log untuk melihat data order
+                \Log::info('Order data untuk WA notifikasi', [
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'courier' => $order->courier,
+                    'shipping_service' => $order->shipping_service,
+                    'delivery_address' => $order->delivery_address
+                ]);
+                
+                $this->midtransService->sendWhatsAppNotification($order, 'CONFIRMED');
             }
 
         } catch (\Exception $e) {
@@ -898,65 +1094,193 @@ class CustomerController extends Controller
             ->with('success', 'Item berhasil ditambahkan ke keranjang!');
     }
 
-    public function messageIndex()
+    /**
+     * Customer confirms that the order has been delivered/received
+     */
+    public function confirmDelivery(Order $order)
     {
-        // Ambil semua percakapan
-        $messages = auth()->user()->messages()
-                            ->orderBy('created_at', 'asc')
-                            ->get();
+        $this->authorize('view', $order);
         
-        // Tandai semua sebagai sudah dibaca oleh customer
-        auth()->user()->messages()->where('is_read', false)->update(['is_read' => true]);
-
-        return view('customer.message.index', compact('messages'));
+        // Only allow confirmation if order is in 'ready' status (Dalam Perjalanan)
+        if ($order->status !== 'ready') {
+            return back()->with('error', 'Pesanan belum dalam status "Dalam Perjalanan".');
+        }
+        
+        // Update status to delivered
+        $order->update(['status' => 'delivered']);
+        
+        return back()->with('success', 'Terima kasih! Pesanan Anda telah dikonfirmasi sampai. Selamat menikmati! 🎉');
     }
 
-    public function messageCreate()
+    // ==================== CHAT METHODS ====================
+
+    /**
+     * Display the chat interface
+     */
+    public function chatIndex()
     {
-        return view('customer.message.create');
+        $user = auth()->user();
+        
+        // Get or create conversation for this user
+        $conversation = \App\Models\Conversation::getOrCreateForUser($user->id);
+        
+        // Get all messages in this conversation
+        $rawMessages = $conversation->messages()->orderBy('created_at', 'asc')->get();
+        
+        // Transform messages for JSON (avoid closure in blade)
+        $messages = $rawMessages->map(function($msg) {
+            return [
+                'id' => $msg->id,
+                'message' => $msg->message,
+                'sender_type' => $msg->sender_type,
+                'created_at' => $msg->created_at->format('H:i'),
+                'is_read' => $msg->is_read,
+            ];
+        })->values();
+        
+        $lastMessageId = $rawMessages->last()->id ?? 0;
+        
+        // Mark messages as read by user
+        $conversation->messages()
+            ->where('sender_type', '!=', 'user')
+            ->where('is_read', false)
+            ->update(['is_read' => true, 'message_status' => 'read']);
+        
+        // Clear unread flag for user
+        $conversation->update(['has_unread_user' => false]);
+        
+        // Get chatbot quick replies
+        $chatbotService = new \App\Services\ChatbotService();
+        $quickReplies = $chatbotService->getQuickReplies();
+
+        return view('customer.chat.index', compact('conversation', 'messages', 'quickReplies', 'lastMessageId'));
     }
 
-    public function messageStore(Request $request)
+    /**
+     * Send a new chat message
+     */
+    public function chatSend(Request $request)
     {
         $validated = $request->validate([
             'message' => 'required|string|max:1000',
         ]);
 
-        // Simpan pesan
-        $msg = auth()->user()->messages()->create([
-            'subject' => 'Chat Pelanggan', // Hardcode karena tidak dipakai di UI baru
+        $user = auth()->user();
+        
+        // Get or create conversation
+        $conversation = \App\Models\Conversation::getOrCreateForUser($user->id);
+        
+        // Create user message
+        $userMessage = Message::create([
+            'user_id' => $user->id,
+            'conversation_id' => $conversation->id,
+            'sender_type' => Message::SENDER_USER,
+            'sender_id' => $user->id,
+            'subject' => 'Chat Pelanggan',
             'message' => $validated['message'],
+            'message_status' => Message::STATUS_SENT,
             'is_read' => false,
         ]);
 
-        // GANTI INI: Jangan redirect, tapi kembalikan JSON sukses
-        // return redirect()->route('customer.message.index'); <--- HAPUS INI
-        
-        return response()->json(['status' => 'success', 'data' => $msg]); // <--- GANTI JADI INI
+        // Update conversation
+        $conversation->update([
+            'last_message_at' => now(),
+            'has_unread_admin' => true,
+        ]);
+
+        // Process chatbot response
+        $chatbotService = new \App\Services\ChatbotService();
+        $botMessage = $chatbotService->processMessage($validated['message'], $conversation);
+
+        return response()->json([
+            'status' => 'success',
+            'user_message' => $userMessage,
+            'bot_message' => $botMessage,
+        ]);
     }
 
-    // ... method lainnya ...
-
-    public function clearChat()
+    /**
+     * Fetch new messages (for polling)
+     */
+    public function chatFetch(Request $request)
     {
-        // Hapus semua pesan milik user yang sedang login
-        auth()->user()->messages()->delete();
+        $user = auth()->user();
+        $lastId = $request->input('last_id', 0);
+        
+        $conversation = \App\Models\Conversation::where('user_id', $user->id)
+            ->where('status', 'open')
+            ->first();
+
+        if (!$conversation) {
+            return response()->json(['messages' => [], 'last_id' => 0]);
+        }
+
+        // Get messages after last_id
+        $messages = $conversation->messages()
+            ->where('id', '>', $lastId)
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        // Mark messages as read
+        $conversation->messages()
+            ->where('sender_type', '!=', 'user')
+            ->where('is_read', false)
+            ->update(['is_read' => true, 'message_status' => 'read']);
+        
+        $conversation->update(['has_unread_user' => false]);
+
+        $lastId = $messages->isNotEmpty() ? $messages->last()->id : $lastId;
+
+        return response()->json([
+            'messages' => $messages->map(function($msg) {
+                return [
+                    'id' => $msg->id,
+                    'message' => $msg->message,
+                    'sender_type' => $msg->sender_type,
+                    'created_at' => $msg->created_at->format('H:i'),
+                    'is_read' => $msg->is_read,
+                ];
+            }),
+            'last_id' => $lastId,
+        ]);
+    }
+
+    /**
+     * Clear chat history
+     */
+    public function chatClear()
+    {
+        $user = auth()->user();
+        
+        // Close current conversation
+        \App\Models\Conversation::where('user_id', $user->id)
+            ->where('status', 'open')
+            ->update(['status' => 'closed']);
 
         return response()->json(['status' => 'success', 'message' => 'Riwayat chat berhasil dihapus.']);
     }
 
+    // ==================== LEGACY MESSAGE METHODS ====================
+    // Keep for backward compatibility
+
+    public function messageIndex()
+    {
+        return redirect()->route('customer.chat.index');
+    }
+
+    public function messageStore(Request $request)
+    {
+        return $this->chatSend($request);
+    }
+
+    public function clearChat()
+    {
+        return $this->chatClear();
+    }
+
     public function messageJson()
     {
-        $messages = auth()->user()->messages()
-                            ->orderBy('created_at', 'asc')
-                            ->get();
-        
-        // Tandai sebagai sudah dibaca
-        auth()->user()->messages()->where('is_read', false)->update(['is_read' => true]);
-        
-        return response()->json([
-            'html' => view('customer.message.partials.chat-bubble', compact('messages'))->render()
-        ]);
+        return $this->chatFetch(request());
     }
 
     public function messageShow(Message $message)

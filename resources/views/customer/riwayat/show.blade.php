@@ -29,7 +29,7 @@
                         @if($order->status == 'pending') bg-yellow-100 text-yellow-800
                         @elseif($order->status == 'confirmed') bg-blue-100 text-blue-800
                         @elseif($order->status == 'preparing') bg-orange-100 text-orange-800
-                        @elseif($order->status == 'ready') bg-green-100 text-green-800
+                        @elseif($order->status == 'ready') bg-purple-100 text-purple-800
                         @elseif($order->status == 'delivered') bg-green-100 text-green-800
                         @else bg-red-100 text-red-800
                         @endif">
@@ -45,7 +45,18 @@
                     @elseif($order->status == 'preparing')
                         <p>Pesanan Anda sedang disiapkan dengan sepenuh hati.</p>
                     @elseif($order->status == 'ready')
-                        <p>Pesanan Anda sudah siap! Silakan ambil atau tunggu pengiriman.</p>
+                        <p>Pesanan Anda sedang dalam perjalanan! Mohon konfirmasi jika sudah sampai.</p>
+                        
+                        {{-- Tombol Konfirmasi Pesanan Sampai --}}
+                        <form action="{{ route('customer.order.confirm-delivery', $order) }}" method="POST" class="mt-4" onsubmit="return confirm('Apakah pesanan sudah sampai dan Anda sudah menerimanya?');">
+                            @csrf
+                            <button type="submit" class="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200 shadow-lg">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Pesanan Telah Sampai
+                            </button>
+                        </form>
                     @elseif($order->status == 'delivered')
                         <p>Pesanan Anda telah selesai. Terima kasih!</p>
                     @else
@@ -127,6 +138,38 @@
                             <p class="text-sm text-gray-600">{{ $order->phone }}</p>
                         </div>
                     </div>
+
+                    @if($order->courier)
+                        <div class="flex items-center space-x-3">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                            </svg>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">Kurir Pengiriman</p>
+                                <p class="text-sm text-gray-600">{{ strtoupper($order->courier) }} {{ $order->shipping_service ? '- ' . $order->shipping_service : '' }}</p>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if($order->tracking_number)
+                        <div class="flex items-center space-x-3">
+                            <svg class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                            </svg>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">Nomor Resi</p>
+                                <div class="flex items-center space-x-2">
+                                    <p class="text-sm font-mono bg-green-50 text-green-700 px-2 py-1 rounded">{{ $order->tracking_number }}</p>
+                                    <button onclick="copyToClipboard('{{ $order->tracking_number }}')" class="text-gray-400 hover:text-gray-600" title="Salin Nomor Resi">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Gunakan nomor resi ini untuk melacak paket Anda</p>
+                            </div>
+                        </div>
+                    @endif
                     
                     @if($order->notes)
                         <div class="flex items-start space-x-3">
@@ -156,4 +199,23 @@
         @endif
     </div>
 </div>
+
+@push('scripts')
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Nomor resi berhasil disalin: ' + text);
+    }).catch(err => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Nomor resi berhasil disalin: ' + text);
+    });
+}
+</script>
+@endpush
 @endsection

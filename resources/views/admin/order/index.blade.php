@@ -24,7 +24,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600 mb-1">Total Pesanan</p>
-                        <p class="text-3xl font-bold text-gray-900">{{ $orders->total() }}</p>
+                        <p class="text-3xl font-bold text-gray-900">{{ $stats['total'] }}</p>
                     </div>
                     <div class="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                         <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,7 +42,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600 mb-1">Menunggu Konfirmasi</p>
-                        <p class="text-3xl font-bold text-gray-900">{{ $orders->where('status', 'pending')->count() }}</p>
+                        <p class="text-3xl font-bold text-gray-900">{{ $stats['pending'] }}</p>
                     </div>
                     <div class="w-14 h-14 bg-yellow-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                         <svg class="w-7 h-7 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,7 +60,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600 mb-1">Sedang Disiapkan</p>
-                        <p class="text-3xl font-bold text-gray-900">{{ $orders->where('status', 'preparing')->count() }}</p>
+                        <p class="text-3xl font-bold text-gray-900">{{ $stats['preparing'] }}</p>
                     </div>
                     <div class="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                         <svg class="w-7 h-7 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,8 +77,8 @@
             <div class="relative bg-white rounded-xl p-6 shadow-xl hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 border border-gray-100">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600 mb-1">Siap Antar</p>
-                        <p class="text-3xl font-bold text-gray-900">{{ $orders->where('status', 'ready')->count() }}</p>
+                        <p class="text-sm font-medium text-gray-600 mb-1">Dalam Perjalanan</p>
+                        <p class="text-3xl font-bold text-gray-900">{{ $stats['ready'] }}</p>
                     </div>
                     <div class="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                         <svg class="w-7 h-7 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -96,7 +96,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600 mb-1">Selesai</p>
-                        <p class="text-3xl font-bold text-gray-900">{{ $orders->where('status', 'delivered')->count() }}</p>
+                        <p class="text-3xl font-bold text-gray-900">{{ $stats['delivered'] }}</p>
                     </div>
                     <div class="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                         <svg class="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,38 +110,56 @@
 
     <!-- Filters & Search -->
     <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 mb-8">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-            <!-- Search -->
-            <div class="flex-1 max-w-md">
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
+        <form method="GET" action="{{ route('admin.order.index') }}" class="space-y-4">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 lg:space-x-4">
+                <!-- Search -->
+                <div class="flex-1 max-w-md">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                        <input type="text" name="search" value="{{ request('search') }}"
+                               class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                               placeholder="Cari: No. Pesanan, Nama, Telepon, No. Resi...">
                     </div>
-                    <input type="text" 
-                           class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                           placeholder="Cari pesanan...">
+                </div>
+
+                <!-- Status Filter -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <select name="status" class="block pl-3 pr-10 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-xl" style="color: #374151;">
+                        <option value="all" {{ request('status') == 'all' || !request('status') ? 'selected' : '' }}>📋 Semua Status</option>
+                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>🕐 Menunggu Konfirmasi</option>
+                        <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>✅ Dikonfirmasi</option>
+                        <option value="preparing" {{ request('status') == 'preparing' ? 'selected' : '' }}>👨‍🍳 Sedang Disiapkan</option>
+                        <option value="ready" {{ request('status') == 'ready' ? 'selected' : '' }}>🚚 Dalam Perjalanan</option>
+                        <option value="delivered" {{ request('status') == 'delivered' ? 'selected' : '' }}>🎉 Selesai</option>
+                        <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>❌ Dibatalkan</option>
+                    </select>
+
+                    <!-- Period Filter -->
+                    <select name="period" class="block pl-3 pr-10 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-xl" style="color: #374151;">
+                        <option value="" {{ !request('period') ? 'selected' : '' }}>📅 Semua Waktu</option>
+                        <option value="daily" {{ request('period') == 'daily' ? 'selected' : '' }}>📆 Hari Ini</option>
+                        <option value="weekly" {{ request('period') == 'weekly' ? 'selected' : '' }}>📆 Minggu Ini</option>
+                        <option value="monthly" {{ request('period') == 'monthly' ? 'selected' : '' }}>📆 Bulan Ini</option>
+                        <option value="yearly" {{ request('period') == 'yearly' ? 'selected' : '' }}>📆 Tahun Ini</option>
+                    </select>
+
+                    <!-- Filter Button -->
+                    <button type="submit" class="px-6 py-3 text-white font-semibold rounded-xl transition-all duration-200 hover:opacity-90" style="background: linear-gradient(to right, #3b82f6, #6366f1);">
+                        🔍 Cari
+                    </button>
+
+                    @if(request()->hasAny(['search', 'status', 'period']))
+                        <a href="{{ route('admin.order.index') }}" class="px-4 py-3 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-all duration-200">
+                            ✕ Reset
+                        </a>
+                    @endif
                 </div>
             </div>
-
-            <!-- Status Filter -->
-            <div class="flex items-center space-x-4">
-                <select class="block w-full pl-3 pr-10 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-xl">
-                    <option value="">Semua Status</option>
-                    <option value="pending">Menunggu Konfirmasi</option>
-                    <option value="confirmed">Dikonfirmasi</option>
-                    <option value="preparing">Sedang Disiapkan</option>
-                    <option value="ready">Siap Diambil</option>
-                    <option value="delivered">Selesai</option>
-                    <option value="cancelled">Dibatalkan</option>
-                </select>
-
-                <!-- Date Filter -->
-                <input type="date" 
-                       class="block w-full pl-3 pr-3 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-xl">
-            </div>
-        </div>
+        </form>
     </div>
 
     <!-- Orders List -->
@@ -224,7 +242,7 @@
                                             <option value="pending" {{ $order->status == 'pending' ? 'selected' : '' }}>🕐 Menunggu Konfirmasi</option>
                                             <option value="confirmed" {{ $order->status == 'confirmed' ? 'selected' : '' }}>✅ Dikonfirmasi</option>
                                             <option value="preparing" {{ $order->status == 'preparing' ? 'selected' : '' }}>👨‍🍳 Sedang Disiapkan</option>
-                                            <option value="ready" {{ $order->status == 'ready' ? 'selected' : '' }}>🍽️ Siap Diambil</option>
+                                            <option value="ready" {{ $order->status == 'ready' ? 'selected' : '' }}>🚚 Dalam Perjalanan</option>
                                             <option value="delivered" {{ $order->status == 'delivered' ? 'selected' : '' }}>🎉 Selesai</option>
                                             <option value="cancelled" {{ $order->status == 'cancelled' ? 'selected' : '' }}>❌ Dibatalkan</option>
                                         </select>
@@ -327,9 +345,42 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                     </svg>
-                                    Alamat Pengiriman
+                                    Informasi Pengiriman
                                 </h5>
-                                <p class="text-sm text-gray-900">{{ $order->delivery_address }}</p>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex items-start space-x-2">
+                                        <span class="font-medium text-gray-700">Alamat:</span>
+                                        <span class="text-gray-900">{{ $order->delivery_address }}</span>
+                                    </div>
+                                    @if($order->courier)
+                                        <div class="flex items-center space-x-2">
+                                            <span class="font-medium text-gray-700">Kurir:</span>
+                                            <span class="text-gray-900 uppercase">{{ $order->courier }} {{ $order->shipping_service ? '- ' . $order->shipping_service : '' }}</span>
+                                        </div>
+                                    @endif
+                                    @if($order->tracking_number)
+                                        <div class="mt-3 p-3 rounded-lg" style="background: linear-gradient(to right, #dcfce7, #bbf7d0);">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center space-x-2">
+                                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                                                    </svg>
+                                                    <span class="font-bold text-green-800">No. Resi:</span>
+                                                </div>
+                                                <button onclick="copyToClipboard('{{ $order->tracking_number }}')" class="text-green-600 hover:text-green-800 text-xs font-medium">
+                                                    📋 Copy
+                                                </button>
+                                            </div>
+                                            <p class="text-lg font-mono font-bold text-green-800 mt-1">{{ $order->tracking_number }}</p>
+                                        </div>
+                                    @else
+                                        @if(in_array($order->status, ['confirmed', 'preparing']))
+                                            <div class="mt-2 p-2 bg-yellow-100 rounded-lg">
+                                                <p class="text-xs text-yellow-800">⚠️ No. Resi belum diinput. <a href="{{ route('admin.order.show', $order) }}" class="underline font-semibold">Input Resi</a></p>
+                                            </div>
+                                        @endif
+                                    @endif
+                                </div>
                             </div>
                         </div>
 
@@ -459,20 +510,31 @@ function closeDeleteModal() {
     document.getElementById('deleteModal').classList.add('hidden');
 }
 
-// Auto refresh every 30 seconds
+// Auto refresh every 60 seconds (increased to avoid interruption)
 setInterval(function() {
     // Only refresh if no modals are open
-    if (!document.getElementById('deleteModal').classList.contains('hidden') === false) {
+    if (document.getElementById('deleteModal').classList.contains('hidden')) {
         // Refresh the page silently
         window.location.reload();
     }
-}, 30000);
+}, 60000);
 
-// Search functionality
-document.querySelector('input[placeholder="Cari pesanan..."]').addEventListener('input', function() {
-    // Implement search functionality here
-    console.log('Searching for:', this.value);
-});
+// Copy to clipboard function
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Show success notification
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-xl shadow-lg z-50 animate-fade-in';
+        notification.innerHTML = '✅ No. Resi berhasil disalin!';
+        document.body.appendChild(notification);
+        
+        setTimeout(function() {
+            notification.remove();
+        }, 2000);
+    }).catch(function(err) {
+        alert('Gagal menyalin: ' + err);
+    });
+}
 </script>
 
 <style>

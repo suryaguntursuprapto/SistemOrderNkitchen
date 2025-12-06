@@ -14,13 +14,21 @@ class Order extends Model
         'order_number',
         'total_amount',
         'status',
+        'shipping_cost',
+        'tracking_number',
         'notes',
         'delivery_address',
         'phone',
+        'recipient_name',
+        'courier',
+        'shipping_service',
+        'city_id',
+        'total_weight',
     ];
 
     protected $casts = [
         'total_amount' => 'decimal:2',
+        'shipping_cost' => 'decimal:2',
     ];
 
     const STATUS_PENDING = 'pending';
@@ -36,7 +44,7 @@ class Order extends Model
             self::STATUS_PENDING => 'Menunggu Konfirmasi',
             self::STATUS_CONFIRMED => 'Dikonfirmasi',
             self::STATUS_PREPARING => 'Sedang Disiapkan',
-            self::STATUS_READY => 'Siap Diambil',
+            self::STATUS_READY => 'Dalam Perjalanan',
             self::STATUS_DELIVERED => 'Selesai',
             self::STATUS_CANCELLED => 'Dibatalkan',
         ];

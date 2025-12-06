@@ -9,13 +9,14 @@ use App\Models\User;
 use App\Models\Journal;
 use App\Models\ChartOfAccount;
 use App\Models\Purchase;
+use App\Models\Conversation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Routing\Controller;
-use App\Models\Expense; // <-- Dari langkah sebelumnya
-use App\Exports\FinancialReportExport; // <-- Dari langkah sebelumnya
-use Maatwebsite\Excel\Facades\Excel; // <-- Dari langkah sebelumnya
-use Carbon\Carbon; // <-- TAMBAHKAN BARIS INI
+use App\Models\Expense;
+use App\Exports\FinancialReportExport;
+use Maatwebsite\Excel\Facades\Excel;
+use Carbon\Carbon;
 use App\Services\AccountingService;
 
 class AdminController extends Controller
@@ -68,6 +69,7 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
+            'weight' => 'required|integer|min:1', 
             'category' => 'required|string|max:255',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'is_available' => 'boolean',
@@ -98,6 +100,7 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
+            'weight' => 'required|integer|min:1', 
             'category' => 'required|string|max:255',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'is_available' => 'boolean',
@@ -113,7 +116,7 @@ class AdminController extends Controller
         $menu->update($validated);
 
         return redirect()->route('admin.menu.index')->with('success', 'Menu berhasil diperbarui!');
-    }
+}
 
     public function menuDestroy(Menu $menu)
     {
@@ -127,10 +130,63 @@ class AdminController extends Controller
     }
 
     // Order Management
-    public function orderIndex()
+    public function orderIndex(Request $request)
     {
-        $orders = Order::with('user')->latest()->paginate(10);
-        return view('admin.order.index', compact('orders'));
+        $query = Order::with(['user', 'payment.paymentMethod', 'orderItems.menu']);
+
+        // Search filter - by order number or customer name
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('order_number', 'like', "%{$search}%")
+                  ->orWhereHas('user', function($q) use ($search) {
+                      $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
+                  })
+                  ->orWhere('tracking_number', 'like', "%{$search}%");
+            });
+        }
+
+        // Status filter
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        // Period filter (daily, weekly, monthly, yearly)
+        if ($request->filled('period')) {
+            $now = now();
+            switch ($request->period) {
+                case 'daily':
+                    $query->whereDate('created_at', $now->toDateString());
+                    break;
+                case 'weekly':
+                    $query->whereBetween('created_at', [$now->startOfWeek(), $now->endOfWeek()]);
+                    break;
+                case 'monthly':
+                    $query->whereMonth('created_at', $now->month)
+                          ->whereYear('created_at', $now->year);
+                    break;
+                case 'yearly':
+                    $query->whereYear('created_at', $now->year);
+                    break;
+            }
+        }
+
+
+
+        $orders = $query->latest()->paginate(10)->withQueryString();
+
+        // Get counts for stats (without filters)
+        $allOrders = Order::select('status')->get();
+        $stats = [
+            'total' => $allOrders->count(),
+            'pending' => $allOrders->where('status', 'pending')->count(),
+            'preparing' => $allOrders->where('status', 'preparing')->count(),
+            'ready' => $allOrders->where('status', 'ready')->count(),
+            'delivered' => $allOrders->where('status', 'delivered')->count(),
+        ];
+
+        return view('admin.order.index', compact('orders', 'stats'));
     }
 
     public function orderShow(Order $order)
@@ -143,11 +199,27 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'status' => 'required|in:pending,confirmed,preparing,ready,delivered,cancelled',
+            'tracking_number' => 'nullable|string|max:100',
         ]);
+
+        $trackingNumberProvided = !empty($validated['tracking_number']);
+        $trackingNumberIsNew = empty($order->tracking_number) && $trackingNumberProvided;
+        $trackingNumberChanged = $trackingNumberProvided && ($order->tracking_number !== $validated['tracking_number']);
+
+        // Auto-change status to 'ready' when tracking number is provided and order is not yet delivered/cancelled
+        if ($trackingNumberProvided && !in_array($validated['status'], ['delivered', 'cancelled'])) {
+            // Jika tracking number diisi, otomatis ubah status ke "ready" (Dalam Perjalanan)
+            $validated['status'] = 'ready';
+        }
 
         $order->update($validated);
 
-        return redirect()->route('admin.order.index')->with('success', 'Status pesanan berhasil diperbarui!');
+        $successMessage = 'Pesanan berhasil diperbarui!';
+        if ($trackingNumberIsNew || $trackingNumberChanged) {
+            $successMessage = 'No. Resi berhasil disimpan! Status pesanan otomatis diubah ke "Dalam Perjalanan".';
+        }
+
+        return redirect()->route('admin.order.show', $order)->with('success', $successMessage);
     }
 
     public function orderDestroy(Order $order)
@@ -156,83 +228,169 @@ class AdminController extends Controller
         return redirect()->route('admin.order.index')->with('success', 'Pesanan berhasil dihapus!');
     }
 
-  public function messageIndex()
-    {
-        // Ambil SEMUA user dengan role customer, bukan cuma yang punya pesan
-        $customers = User::where('role', 'customer')
-            ->with(['messages' => function($q) {
-                $q->latest();
-            }])
-            ->withCount(['messages as unread_count' => function ($q) {
-                $q->where('is_read', false);
-            }])
-            ->get()
-            // Urutkan: Yang punya pesan terbaru di atas, sisanya berdasarkan tanggal daftar
-            ->sortByDesc(function($user) {
-                // Jika ada pesan, pakai tanggal pesan terakhir.
-                // Jika TIDAK ADA pesan, pakai tanggal user mendaftar.
-                // Kita gunakan helper optional() agar tidak error jika null.
-                return optional($user->messages->first())->created_at ?? $user->created_at;
-            });
+    // ==================== CHAT MANAGEMENT ====================
 
-        return view('admin.message.index', compact('customers'));
+    /**
+     * Display list of all conversations
+     */
+    public function messageIndex()
+    {
+        // Get all customers with their conversation info
+        $customers = User::where('role', 'customer')
+            ->with(['conversations' => function($q) {
+                $q->where('status', 'open')
+                  ->with('lastMessage')
+                  ->withCount(['messages as unread_count' => function ($q) {
+                      $q->where('sender_type', 'user')
+                        ->where('is_read', false);
+                  }]);
+            }])
+            ->orderBy('name')
+            ->get()
+            ->map(function($user) {
+                // Get the first open conversation or create placeholder data
+                $conversation = $user->conversations->first();
+                return (object)[
+                    'user_id' => $user->id,
+                    'user' => $user,
+                    'conversation_id' => $conversation?->id,
+                    'lastMessage' => $conversation?->lastMessage,
+                    'last_message_at' => $conversation?->last_message_at,
+                    'unread_count' => $conversation?->unread_count ?? 0,
+                    'created_at' => $conversation?->created_at ?? $user->created_at,
+                ];
+            })
+            // Sort by unread count (desc), then by last message (desc)
+            ->sortByDesc('unread_count')
+            ->sortByDesc('last_message_at');
+
+        return view('admin.chat.index', ['conversations' => $customers]);
     }
 
+    /**
+     * Get chat messages for a specific conversation
+     */
     public function getCustomerChat(User $user)
     {
-        // Tandai semua pesan user ini sebagai terbaca
-        $user->messages()->where('is_read', false)->update(['is_read' => true]);
+        // Find or create conversation for this user
+        $conversation = Conversation::where('user_id', $user->id)
+            ->where('status', 'open')
+            ->first();
 
-        $messages = $user->messages()->orderBy('created_at', 'asc')->get();
-        
-        return response()->json([
-            'html' => view('admin.message.partials.chat-bubble', compact('messages'))->render(),
-            'user' => $user
-        ]);
-    }
-
-    public function sendChatReply(Request $request)
-    {
-        $request->validate([
-            'user_id' => 'required',
-            'message' => 'required',
-        ]);
-
-        // Cek apakah ada pesan terakhir dari user yang belum dibalas
-        $lastMessage = Message::where('user_id', $request->user_id)
-                              ->whereNull('admin_reply')
-                              ->latest()
-                              ->first();
-
-        if ($lastMessage) {
-            // Skenario 1: Membalas pesan user yang ada
-            $lastMessage->update([
-                'admin_reply' => $request->message,
-                'replied_at' => now(),
-                'is_read' => true
-            ]);
-        } else {
-            // Skenario 2: Admin chat duluan / Chat baru
-            // Kita buat "Dummy Message" agar struktur DB tetap valid
-            Message::create([
-                'user_id' => $request->user_id,
-                'subject' => 'Chat Admin',
-                'message' => '[SYSTEM_INIT]', // Kode khusus untuk disembunyikan di View
-                'admin_reply' => $request->message,
-                'replied_at' => now(),
-                'is_read' => true
+        if (!$conversation) {
+            return response()->json([
+                'html' => '<div class="text-center text-gray-500 py-8">Belum ada percakapan dengan pelanggan ini.</div>',
+                'user' => $user,
+                'conversation_id' => null
             ]);
         }
 
-        return response()->json(['status' => 'success']);
+        // Mark all user messages as read
+        $conversation->messages()
+            ->where('sender_type', 'user')
+            ->where('is_read', false)
+            ->update(['is_read' => true, 'message_status' => 'read']);
+        
+        $conversation->update(['has_unread_admin' => false]);
+
+        $messages = $conversation->messages()->orderBy('created_at', 'asc')->get();
+        
+        return response()->json([
+            'html' => view('admin.chat.partials.chat-bubble', compact('messages'))->render(),
+            'user' => $user,
+            'conversation_id' => $conversation->id
+        ]);
     }
 
-    // ... method lainnya ...
+    /**
+     * Send a reply to a conversation
+     */
+    public function sendChatReply(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'message' => 'required|string|max:1000',
+        ]);
 
+        $user = User::findOrFail($request->user_id);
+        
+        // Get or create conversation
+        $conversation = Conversation::getOrCreateForUser($user->id);
+        
+        // Create admin message
+        $message = Message::create([
+            'user_id' => $user->id,
+            'conversation_id' => $conversation->id,
+            'sender_type' => Message::SENDER_ADMIN,
+            'sender_id' => auth()->id(),
+            'subject' => 'Admin Reply',
+            'message' => $request->message,
+            'message_status' => Message::STATUS_SENT,
+            'is_read' => false,
+        ]);
+
+        // Update conversation
+        $conversation->update([
+            'last_message_at' => now(),
+            'has_unread_user' => true,
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $message
+        ]);
+    }
+
+    /**
+     * Fetch new messages for polling (admin side)
+     */
+    public function fetchChatMessages(Request $request, User $user)
+    {
+        $lastId = $request->input('last_id', 0);
+        
+        $conversation = Conversation::where('user_id', $user->id)
+            ->where('status', 'open')
+            ->first();
+
+        if (!$conversation) {
+            return response()->json(['messages' => [], 'last_id' => 0]);
+        }
+
+        $messages = $conversation->messages()
+            ->where('id', '>', $lastId)
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        // Mark user messages as read
+        $conversation->messages()
+            ->where('sender_type', 'user')
+            ->where('is_read', false)
+            ->update(['is_read' => true, 'message_status' => 'read']);
+
+        $lastId = $messages->isNotEmpty() ? $messages->last()->id : $lastId;
+
+        return response()->json([
+            'messages' => $messages->map(function($msg) {
+                return [
+                    'id' => $msg->id,
+                    'message' => $msg->message,
+                    'sender_type' => $msg->sender_type,
+                    'created_at' => $msg->created_at->format('H:i'),
+                    'is_read' => $msg->is_read,
+                ];
+            }),
+            'last_id' => $lastId,
+        ]);
+    }
+
+    /**
+     * Clear chat history for a user
+     */
     public function clearChat(User $user)
     {
-        // Hapus semua pesan milik user ini
-        $user->messages()->delete();
+        // Close all conversations for this user
+        Conversation::where('user_id', $user->id)
+            ->update(['status' => 'closed']);
 
         return response()->json(['status' => 'success', 'message' => 'Riwayat chat berhasil dihapus.']);
     }

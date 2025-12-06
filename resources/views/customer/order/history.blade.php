@@ -146,6 +146,35 @@
                                     </div>
                                 </div>
                             </div>
+                            
+                            {{-- Kurir dan Tracking Number --}}
+                            @if($order->courier || $order->tracking_number)
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                    @if($order->courier)
+                                        <div class="flex items-start space-x-3">
+                                            <svg class="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                                            </svg>
+                                            <div>
+                                                <p class="text-sm font-semibold text-gray-700">Kurir:</p>
+                                                <p class="text-sm text-gray-600 mt-1">{{ strtoupper($order->courier) }} {{ $order->shipping_service ? '- ' . $order->shipping_service : '' }}</p>
+                                            </div>
+                                        </div>
+                                    @endif
+                                    
+                                    @if($order->tracking_number)
+                                        <div class="flex items-start space-x-3">
+                                            <svg class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                                            </svg>
+                                            <div>
+                                                <p class="text-sm font-semibold text-gray-700">Nomor Resi:</p>
+                                                <p class="text-sm font-mono bg-green-50 text-green-700 px-2 py-1 rounded mt-1 inline-block">{{ $order->tracking_number }}</p>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
                         
                         <!-- Action Buttons -->
@@ -197,19 +226,32 @@
                                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                                         </svg>
-                                        Siap Diambil
+                                        Dalam Perjalanan
                                     </span>
+                                    
+                                    {{-- Tombol Konfirmasi Pesanan Sampai --}}
+                                    <form action="{{ route('customer.order.confirm-delivery', $order) }}" method="POST" class="inline" onsubmit="return confirm('Apakah pesanan sudah sampai dan Anda sudah menerimanya?');">
+                                        @csrf
+                                        <button type="submit" class="inline-flex items-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                            Pesanan Telah Sampai
+                                        </button>
+                                    </form>
                                 @endif
                                 
                                 <!-- Reorder Button - Available for all completed orders -->
                                 @if(in_array($order->status, ['delivered', 'confirmed', 'preparing', 'ready']))
-                                    <a href="{{ route('customer.order.reorder', $order) }}" 
-                                       class="inline-flex items-center px-3 py-2 bg-orange-100 hover:bg-orange-200 text-orange-800 text-sm font-medium rounded-lg transition-colors duration-200">
-                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                        </svg>
-                                        Pesan Lagi
-                                    </a>
+                                    <form action="{{ route('customer.order.reorder', $order) }}" method="POST" class="inline">
+                                        @csrf
+                                        <button type="submit" class="inline-flex items-center px-3 py-2 bg-orange-100 hover:bg-orange-200 text-orange-800 text-sm font-medium rounded-lg transition-colors duration-200">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                            </svg>
+                                            Pesan Lagi
+                                        </button>
+                                    </form>
                                 @endif
                                 
                                 <!-- Check Payment Status Button (for pending payments) -->

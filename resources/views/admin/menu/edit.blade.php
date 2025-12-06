@@ -3,7 +3,6 @@
 @section('content')
 <div class="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Header Section -->
         <div class="mb-8">
             <div class="flex items-center space-x-4 mb-6">
                 <a href="{{ route('admin.menu.index') }}" 
@@ -22,9 +21,7 @@
             </div>
         </div>
 
-        <!-- Main Form Card -->
         <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-            <!-- Form Header -->
             <div class="bg-gradient-to-r from-orange-500 to-orange-600 px-8 py-6">
                 <div class="flex items-center space-x-3">
                     <div class="w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
@@ -36,12 +33,10 @@
                 </div>
             </div>
 
-            <!-- Form Body -->
             <form action="{{ route('admin.menu.update', $menu) }}" method="POST" enctype="multipart/form-data" class="p-8 space-y-8">
                 @csrf
                 @method('PUT')
                 
-                <!-- Basic Information Section -->
                 <div class="space-y-6">
                     <div class="flex items-center space-x-3 mb-6">
                         <div class="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center">
@@ -51,13 +46,12 @@
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <!-- Name Field -->
                         <div class="space-y-2">
                             <label for="name" class="block text-sm font-semibold text-gray-700">
                                 Nama Menu
                                 <span class="text-red-500">*</span>
                             </label>
-                            <div class="relative">
+                            <div class="relative transform transition-transform duration-300">
                                 <input type="text" name="name" id="name" required
                                        class="block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300 @error('name') border-red-500 ring-2 ring-red-200 @enderror"
                                        value="{{ old('name', $menu->name) }}" 
@@ -74,13 +68,12 @@
                             @enderror
                         </div>
 
-                        <!-- Category Field -->
                         <div class="space-y-2">
                             <label for="category" class="block text-sm font-semibold text-gray-700">
                                 Kategori
                                 <span class="text-red-500">*</span>
                             </label>
-                            <div class="relative">
+                            <div class="relative transform transition-transform duration-300">
                                 <select name="category" id="category" required
                                         class="block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300 @error('category') border-red-500 ring-2 ring-red-200 @enderror">
                                     <option value="">Pilih Kategori</option>
@@ -102,46 +95,38 @@
                         </div>
                     </div>
 
-                    <!-- Description Field -->
-                    <div class="space-y-2">
-                        <label for="description" class="block text-sm font-semibold text-gray-700">
-                            Deskripsi
-                            <span class="text-red-500">*</span>
-                        </label>
-                        <div class="relative">
-                            <textarea name="description" id="description" rows="4" required
-                                      class="block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 resize-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300 @error('description') border-red-500 ring-2 ring-red-200 @enderror"
-                                      placeholder="Deskripsikan menu ini dengan detail yang menarik...">{{ old('description', $menu->description) }}</textarea>
-                            <div class="absolute inset-0 rounded-xl ring-1 ring-inset ring-gray-300 pointer-events-none"></div>
-                        </div>
-                        @error('description')
-                            <div class="flex items-center space-x-2 mt-2">
-                                <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                                </svg>
-                                <p class="text-sm text-red-600">{{ $message }}</p>
-                            </div>
-                        @enderror
-                    </div>
-                </div>
-
-                <!-- Price & Status Section -->
-                <div class="space-y-6">
-                    <div class="flex items-center space-x-3 mb-6">
-                        <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                        </div>
-                        <h3 class="text-lg font-semibold text-gray-900">Harga & Status</h3>
-                    </div>
-
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <!-- Price Field -->
+                        <div class="space-y-2">
+                            <label for="weight" class="block text-sm font-semibold text-gray-700">
+                                Berat per Item (Gram)
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative transform transition-transform duration-300">
+                                <input type="number" name="weight" id="weight" required min="1" step="1"
+                                       class="block w-full pl-6 pr-14 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 @error('weight') border-red-500 ring-2 ring-red-200 @enderror"
+                                       value="{{ old('weight', $menu->weight) }}" 
+                                       placeholder="200">
+                                <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 text-sm">gram</span>
+                                </div>
+                                <div class="absolute inset-0 rounded-xl ring-1 ring-inset ring-gray-300 pointer-events-none"></div>
+                            </div>
+                            @error('weight')
+                                <div class="flex items-center space-x-2 mt-2">
+                                    <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <p class="text-sm text-red-600">{{ $message }}</p>
+                                </div>
+                            @enderror
+                        </div>
+
                         <div class="space-y-2">
                             <label for="price" class="block text-sm font-semibold text-gray-700">
                                 Harga
                                 <span class="text-red-500">*</span>
                             </label>
-                            <div class="relative">
+                            <div class="relative transform transition-transform duration-300">
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span class="text-gray-500 font-medium">Rp</span>
                                 </div>
@@ -160,11 +145,41 @@
                                 </div>
                             @enderror
                         </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="description" class="block text-sm font-semibold text-gray-700">
+                            Deskripsi
+                            <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative transform transition-transform duration-300">
+                            <textarea name="description" id="description" rows="4" required
+                                      class="block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 resize-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300 @error('description') border-red-500 ring-2 ring-red-200 @enderror"
+                                      placeholder="Deskripsikan menu ini dengan detail yang menarik...">{{ old('description', $menu->description) }}</textarea>
+                            <div class="absolute inset-0 rounded-xl ring-1 ring-inset ring-gray-300 pointer-events-none"></div>
+                        </div>
+                        @error('description')
+                            <div class="flex items-center space-x-2 mt-2">
+                                <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                                <p class="text-sm text-red-600">{{ $message }}</p>
+                            </div>
+                        @enderror
+                    </div>
+                </div>
 
-                        <!-- Status Field -->
+                <div class="space-y-6">
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900">Status & Gambar</h3>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div class="space-y-2">
                             <label for="is_available" class="block text-sm font-semibold text-gray-700">Status Ketersediaan</label>
-                            <div class="relative">
+                            <div class="relative transform transition-transform duration-300">
                                 <select name="is_available" id="is_available"
                                         class="block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300">
                                     <option value="1" {{ old('is_available', $menu->is_available) == '1' ? 'selected' : '' }}>
@@ -178,32 +193,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Image Section -->
-                <div class="space-y-6">
-                    <div class="flex items-center space-x-3 mb-6">
-                        <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        </div>
-                        <h3 class="text-lg font-semibold text-gray-900">Gambar Menu</h3>
-                    </div>
-
-                    @if($menu->image)
-                        <div class="bg-gray-50 rounded-xl p-6 border border-gray-200">
-                            <label class="block text-sm font-semibold text-gray-700 mb-3">Gambar Saat Ini</label>
-                            <div class="relative inline-block">
-                                <img src="{{ Storage::url($menu->image) }}" 
-                                     alt="{{ $menu->name }}" 
-                                     class="h-32 w-32 object-cover rounded-xl shadow-md border-2 border-white">
-                                <div class="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-                    @endif
 
                     <div class="space-y-3">
                         <label for="image" class="block text-sm font-semibold text-gray-700">
@@ -212,7 +201,6 @@
                         
                         <div class="bg-gray-50 rounded-xl p-6 border-2 border-dashed border-gray-300 hover:border-orange-400 transition-all duration-300">
                             <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
-                                <!-- Upload Button -->
                                 <label for="image" class="cursor-pointer inline-flex items-center px-6 py-3 bg-white border border-gray-300 rounded-xl shadow-sm text-sm font-medium text-gray-700 hover:bg-orange-50 hover:border-orange-300 hover:text-orange-600 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-orange-500 transition-all duration-300">
                                     <svg class="mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
@@ -221,7 +209,6 @@
                                     <input id="image" name="image" type="file" accept="image/*" class="sr-only">
                                 </label>
                                 
-                                <!-- File Info Display -->
                                 <div id="file-info" class="hidden">
                                     <div class="flex items-center space-x-3 bg-white rounded-lg px-4 py-2 border border-green-200 shadow-sm">
                                         <div class="flex-shrink-0">
@@ -239,7 +226,6 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Default Info -->
                                 <div id="default-info" class="text-sm text-gray-500">
                                     <div class="flex items-center space-x-2">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -260,12 +246,27 @@
                             </div>
                         @enderror
                     </div>
+
+                    @if($menu->image)
+                        <div class="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                            <label class="block text-sm font-semibold text-gray-700 mb-3">Gambar Saat Ini</label>
+                            <div class="relative inline-block">
+                                <img src="{{ Storage::url($menu->image) }}" 
+                                     alt="{{ $menu->name }}" 
+                                     class="h-32 w-32 object-cover rounded-xl shadow-md border-2 border-white">
+                                <div class="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                 </div>
 
-                <!-- Action Buttons -->
                 <div class="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-8 border-t border-gray-200">
                     <button type="submit" 
-                            class="bg-yellow-600 border border-transparent rounded-md shadow-sm py-2 px-4 text-sm font-medium text-white hover:bg-green-700">
+                            class="bg-yellow-600 border border-transparent rounded-md shadow-sm py-2 px-4 text-sm font-medium text-white hover:bg-orange-700">
                         Update Menu
                     </button>
                 </div>
@@ -402,11 +403,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const inputs = document.querySelectorAll('input, select, textarea');
     inputs.forEach(input => {
         input.addEventListener('focus', function() {
-            this.parentElement.classList.add('scale-[1.02]');
+            this.closest('.relative').classList.add('ring-2', 'ring-offset-2', 'ring-yellow-300');
         });
         
         input.addEventListener('blur', function() {
-            this.parentElement.classList.remove('scale-[1.02]');
+            this.closest('.relative').classList.remove('ring-2', 'ring-offset-2', 'ring-yellow-300');
         });
     });
 
@@ -425,23 +426,19 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         submitBtn.disabled = true;
         
-        if (fileInput.files.length > 0) {
-            console.log('Form submitted with file:', fileInput.files[0].name);
-        } else {
-            console.log('Form submitted without new file');
-        }
+        console.log('Form submitted.');
     });
 });
 </script>
 
 <style>
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
+@keyframes fade-in {
+    from { opacity: 0; transform: translateY(-20px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-fadeIn {
-    animation: fadeIn 0.3s ease-out;
+.animate-fade-in {
+    animation: fade-in 0.8s ease-out;
 }
 
 /* Custom scrollbar */

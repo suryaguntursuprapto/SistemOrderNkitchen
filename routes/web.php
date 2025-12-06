@@ -79,10 +79,11 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::put('/order/{order}', [AdminController::class, 'orderUpdate'])->name('order.update');
     Route::delete('/order/{order}', [AdminController::class, 'orderDestroy'])->name('order.destroy');
     
-    // Message management
+    // Message/Chat management
     Route::get('/message', [AdminController::class, 'messageIndex'])->name('message.index');
     Route::get('/message/chat/{user}', [AdminController::class, 'getCustomerChat'])->name('message.chat');
     Route::post('/message/reply', [AdminController::class, 'sendChatReply'])->name('message.reply');
+    Route::get('/message/fetch/{user}', [AdminController::class, 'fetchChatMessages'])->name('message.fetch');
     Route::get('/message/{message}', [AdminController::class, 'messageShow'])->name('message.show');
     Route::delete('/message/clear/{user}', [AdminController::class, 'clearChat'])->name('message.clear');
 
@@ -121,9 +122,15 @@ Route::middleware(['auth', 'verified'])->prefix('customer')->name('customer.')->
     Route::get('/order', [CustomerController::class, 'orderIndex'])->name('order.index'); // Halaman shopping cart
     Route::get('/order/create', [CustomerController::class, 'orderCreate'])->name('order.create'); // Halaman checkout
     Route::post('/order', [CustomerController::class, 'orderStore'])->name('order.store'); // Store order
+    // API Wilayah & Ongkir
+    Route::get('/provinces', [CustomerController::class, 'getProvinces'])->name('api.provinces');
+    Route::get('/cities/{province}', [CustomerController::class, 'getCities'])->name('api.cities');
+    Route::get('/search-destination', [CustomerController::class, 'searchDestination'])->name('api.search_destination');
+    Route::post('/check-shipping', [CustomerController::class, 'checkShippingCost'])->name('api.shipping');
     Route::get('/orders', [CustomerController::class, 'orders'])->name('orders'); // Riwayat pesanan
     Route::get('/order/{order}', [CustomerController::class, 'orderShow'])->name('order.show'); // Detail pesanan
     Route::post('/order/{order}/reorder', [CustomerController::class, 'orderReorder'])->name('order.reorder'); // Pesan lagi
+    Route::post('/order/{order}/confirm-delivery', [CustomerController::class, 'confirmDelivery'])->name('order.confirm-delivery'); // Konfirmasi pesanan sampai
      
     // Payment routes
     Route::get('/order/{order}/payment', [CustomerController::class, 'orderPayment'])->name('order.payment');
@@ -135,13 +142,18 @@ Route::middleware(['auth', 'verified'])->prefix('customer')->name('customer.')->
     Route::get('/midtrans/unfinish', [CustomerController::class, 'midtransUnfinish'])->name('midtrans.unfinish');
     Route::get('/midtrans/error', [CustomerController::class, 'midtransError'])->name('midtrans.error');
     
-    // Message management
+    // Message management (Legacy - redirects to chat)
     Route::get('/message', [CustomerController::class, 'messageIndex'])->name('message.index');
     Route::get('/message/json', [CustomerController::class, 'messageJson'])->name('message.json');
-    Route::get('/message/create', [CustomerController::class, 'messageCreate'])->name('message.create');
     Route::post('/message', [CustomerController::class, 'messageStore'])->name('message.store');
     Route::get('/message/{message}', [CustomerController::class, 'messageShow'])->name('message.show');
     Route::delete('/message/clear', [CustomerController::class, 'clearChat'])->name('message.clear');
+    
+    // Chat routes (New real-time chat)
+    Route::get('/chat', [CustomerController::class, 'chatIndex'])->name('chat.index');
+    Route::post('/chat/send', [CustomerController::class, 'chatSend'])->name('chat.send');
+    Route::get('/chat/fetch', [CustomerController::class, 'chatFetch'])->name('chat.fetch');
+    Route::post('/chat/clear', [CustomerController::class, 'chatClear'])->name('chat.clear');
 });
 
 Route::post('/midtrans/callback', [CustomerController::class, 'midtransCallback'])->name('midtrans.callback');

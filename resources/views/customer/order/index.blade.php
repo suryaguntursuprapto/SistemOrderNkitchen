@@ -1,43 +1,53 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
     <div class="py-6">
-        <h1 class="text-3xl font-bold text-gray-900">Menu Pempek</h1>
-        <p class="mt-1 text-sm text-gray-600">Pilih menu favorit Anda dan masukkan ke keranjang</p>
+        <h1 class="text-4xl font-extrabold text-gray-900 bg-clip-text text-transparent bg-gradient-to-r from-orange-600 to-red-500">
+            Menu Pempek N-Kitchen
+        </h1>
+        <p class="mt-2 text-lg text-gray-600">Pilih menu favorit Anda dan masukkan ke keranjang untuk proses *checkout*.</p>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Menu List -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        
         <div class="lg:col-span-2">
-            <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <div class="bg-gradient-to-r from-orange-50 to-red-50 px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-900">Daftar Menu</h3>
+            <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
+                <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-xl font-bold text-gray-900">Daftar Menu Tersedia</h3>
                 </div>
                 <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         @foreach($menus as $menu)
-                        <div class="border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow duration-200">
-                            @if($menu->image)
-                            <img src="{{ Storage::url($menu->image) }}"
-                                 alt="{{ $menu->name }}"
-                                 class="w-full h-48 object-cover">
-                            @else
-                            <div class="w-full h-48 bg-gradient-to-br from-orange-200 to-red-200 flex items-center justify-center">
-                                <svg class="w-12 h-12 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                </svg>
-                            </div>
-                            @endif
-                            
-                            <div class="p-4">
-                                <h4 class="font-semibold text-gray-900 mb-1">{{ $menu->name }}</h4>
-                                <p class="text-sm text-gray-600 mb-2">{{ $menu->description }}</p>
-                                <p class="text-lg font-bold text-orange-600 mb-3">Rp {{ number_format($menu->price, 0, ',', '.') }}</p>
+                        <div class="bg-white border border-gray-100 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5">
+                            <div class="flex">
+                                @if($menu->image)
+                                <img src="{{ Storage::url($menu->image) }}"
+                                     alt="{{ $menu->name }}"
+                                     class="w-32 h-32 object-cover rounded-l-2xl flex-shrink-0">
+                                @else
+                                <div class="w-32 h-32 bg-gray-200 rounded-l-2xl flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-10 h-10 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                </div>
+                                @endif
                                 
+                                <div class="p-4 flex flex-col justify-between flex-grow">
+                                    <div>
+                                        <h4 class="font-bold text-lg text-gray-900">{{ $menu->name }}</h4>
+                                        <p class="text-sm text-gray-500 line-clamp-2 mb-2">{{ $menu->description }}</p>
+                                    </div>
+                                    
+                                    <p class="text-xl font-extrabold text-orange-600 mb-3">Rp {{ number_format($menu->price, 0, ',', '.') }}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
                                 @if($menu->is_available)
-                                <div class="flex items-center space-x-2">
-                                    <select class="quantity-select w-20 px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                <div class="flex items-center space-x-3">
+                                    <select class="quantity-select w-20 px-2 py-2 border border-gray-300 rounded-xl text-base font-medium focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 shadow-inner"
                                             data-menu-id="{{ $menu->id }}"
                                             data-menu-name="{{ $menu->name }}"
                                             data-menu-price="{{ $menu->price }}"
@@ -47,14 +57,16 @@
                                         <option value="{{ $i }}">{{ $i }}</option>
                                         @endfor
                                     </select>
-                                    <button class="add-to-cart-btn flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                                    
+                                    <button class="add-to-cart-btn flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl text-base font-semibold transition-all duration-300 shadow-md disabled:bg-gray-300 disabled:cursor-not-allowed transform hover:scale-[1.02]"
                                             data-menu-id="{{ $menu->id }}"
                                             disabled>
-                                        Tambah ke Keranjang
+                                        <span class="original-text">Tambah</span>
+                                        <span class="success-text hidden">✔ Ditambahkan!</span>
                                     </button>
                                 </div>
                                 @else
-                                <button class="w-full bg-gray-300 text-gray-500 px-4 py-2 rounded-lg text-sm font-medium cursor-not-allowed" disabled>
+                                <button class="w-full bg-gray-300 text-gray-500 px-4 py-2.5 rounded-xl text-base font-medium cursor-not-allowed" disabled>
                                     Tidak Tersedia
                                 </button>
                                 @endif
@@ -64,7 +76,7 @@
                     </div>
                     
                     @if($menus->hasPages())
-                    <div class="mt-6">
+                    <div class="mt-8">
                         {{ $menus->links() }}
                     </div>
                     @endif
@@ -72,51 +84,39 @@
             </div>
         </div>
 
-        <!-- Shopping Cart -->
         <div class="lg:col-span-1">
-            <div class="bg-white rounded-2xl shadow-lg overflow-hidden sticky top-6">
+            <div class="bg-white rounded-3xl shadow-2xl overflow-hidden sticky top-6 border border-gray-100">
                 <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-900">Keranjang Belanja</h3>
+                    <h3 class="text-xl font-bold text-gray-900">Keranjang Belanja</h3>
                     <p class="text-sm text-gray-600">
                         <span id="cart-count">0</span> item dipilih
                     </p>
                 </div>
                 <div class="p-6">
-                    <div id="cart-items" class="space-y-4 mb-6">
-                        <!-- Cart items will be populated here -->
-                    </div>
+                    <div id="cart-items" class="space-y-4 mb-6 max-h-96 overflow-y-auto pr-2">
+                        </div>
 
-                    <!-- Empty Cart Message -->
-                    <div id="empty-cart" class="text-center py-8">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div id="empty-cart" class="text-center py-10">
+                        <svg class="mx-auto h-14 w-14 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m0 0L17 21"></path>
                         </svg>
-                        <p class="mt-2 text-sm text-gray-500">Keranjang masih kosong</p>
+                        <p class="mt-3 text-lg font-medium text-gray-500">Keranjang masih kosong</p>
                     </div>
 
-                    <!-- Cart Summary -->
                     <div id="cart-summary" class="hidden">
-                        <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-gray-600">Subtotal:</span>
-                                <span class="font-medium" id="cart-subtotal">Rp 0</span>
-                            </div>
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-gray-600">Ongkos Kirim:</span>
-                                <span class="font-medium">Rp 5.000</span>
-                            </div>
-                            <hr class="my-2">
+                        <div class="bg-gray-50 rounded-xl p-5 mb-6 border border-gray-100 shadow-inner">
                             <div class="flex justify-between items-center">
-                                <span class="text-lg font-bold text-gray-900">Total:</span>
-                                <span class="text-lg font-bold text-orange-600" id="cart-total">Rp 5.000</span>
+                                <span class="text-lg font-medium text-gray-700">Subtotal Pesanan:</span>
+                                <span class="text-xl font-extrabold text-orange-600" id="cart-subtotal">Rp 0</span>
                             </div>
+                            <p class="text-sm text-gray-500 mt-2">Biaya pengiriman akan dihitung saat checkout.</p>
                         </div>
 
                         <form id="checkout-form" action="{{ route('customer.order.create') }}" method="GET">
                             <input type="hidden" name="cart_data" id="cart-data">
                             <button type="submit" id="checkout-btn" 
-                                    class="w-full bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-semibold transition-colors">
-                                Checkout
+                                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3.5 rounded-xl font-bold text-lg transition-all duration-300 shadow-xl transform hover:-translate-y-0.5">
+                                Lanjut ke Checkout
                             </button>
                         </form>
                     </div>
@@ -129,12 +129,24 @@
 <script>
 // Global cart object
 let cart = {};
-const deliveryFee = 5000;
+// Hapus deliveryFee hardcode
 
 // Initialize cart functionality
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Cart initialized');
     
+    // Check local storage for persistent cart (optional, but good practice)
+    // const storedCart = localStorage.getItem('nkitchen_cart');
+    // if (storedCart) {
+    //     try {
+    //         cart = JSON.parse(storedCart);
+    //         updateCartDisplay();
+    //     } catch (e) {
+    //         console.error('Failed to load cart from storage', e);
+    //         cart = {};
+    //     }
+    // }
+
     // Quantity select change handler
     document.querySelectorAll('.quantity-select').forEach(select => {
         select.addEventListener('change', function() {
@@ -159,15 +171,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.disabled = true;
                 
                 // Show success feedback
-                const originalText = this.textContent;
-                this.textContent = 'Ditambahkan!';
-                this.classList.remove('bg-orange-600');
+                const originalText = this.querySelector('.original-text');
+                const successText = this.querySelector('.success-text');
+                
+                if (originalText && successText) {
+                    originalText.classList.add('hidden');
+                    successText.classList.remove('hidden');
+                } else {
+                    this.textContent = 'Ditambahkan!';
+                }
+                
+                this.classList.remove('bg-orange-600', 'hover:bg-orange-700');
                 this.classList.add('bg-green-600');
                 
                 setTimeout(() => {
-                    this.textContent = originalText;
+                    if (originalText && successText) {
+                        originalText.classList.remove('hidden');
+                        successText.classList.add('hidden');
+                    }
                     this.classList.remove('bg-green-600');
-                    this.classList.add('bg-orange-600');
+                    this.classList.add('bg-orange-600', 'hover:bg-orange-700');
                 }, 1000);
             }
         });
@@ -183,17 +206,19 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Set cart data to hidden input
         document.getElementById('cart-data').value = JSON.stringify(Object.values(cart));
+        // Save cart to local storage (optional)
+        // localStorage.setItem('nkitchen_cart', JSON.stringify(cart)); 
         console.log('Checkout data:', Object.values(cart));
     });
+    
+    // Initial display update
+    updateCartDisplay();
 });
 
 // Add item to cart
 function addToCart(menuId, quantity, menuData) {
-    console.log('addToCart called:', {menuId, quantity, menuData});
-    
     if (cart[menuId]) {
         cart[menuId].quantity += quantity;
-        console.log('Updated existing item:', cart[menuId]);
     } else {
         cart[menuId] = {
             id: parseInt(menuId),
@@ -202,24 +227,18 @@ function addToCart(menuId, quantity, menuData) {
             quantity: quantity,
             image: menuData.menuImage
         };
-        console.log('Added new item:', cart[menuId]);
     }
-    
-    console.log('Current cart:', cart);
     updateCartDisplay();
 }
 
 // Remove item from cart
 function removeFromCart(menuId) {
-    console.log('Removing from cart:', menuId);
     delete cart[menuId];
     updateCartDisplay();
 }
 
 // Update item quantity in cart
 function updateCartQuantity(menuId, quantity) {
-    console.log('Updating quantity:', {menuId, quantity});
-    
     if (quantity <= 0) {
         removeFromCart(menuId);
     } else {
@@ -232,19 +251,15 @@ function updateCartQuantity(menuId, quantity) {
 
 // Update cart display
 function updateCartDisplay() {
-    console.log('Updating cart display...');
-    
-    const cartItems = document.getElementById('cart-items');
+    const cartItemsContainer = document.getElementById('cart-items');
     const cartCount = document.getElementById('cart-count');
     const cartSummary = document.getElementById('cart-summary');
     const emptyCart = document.getElementById('empty-cart');
     
     const totalItems = Object.values(cart).reduce((sum, item) => sum + item.quantity, 0);
     const subtotal = Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const total = subtotal + deliveryFee;
-    
-    console.log('Cart totals:', {totalItems, subtotal, total});
-    console.log('Cart contents:', cart);
+    // Total hanya subtotal menu
+    const total = subtotal; 
     
     // Update item count
     cartCount.textContent = totalItems;
@@ -253,8 +268,7 @@ function updateCartDisplay() {
         // Show empty cart
         emptyCart.classList.remove('hidden');
         cartSummary.classList.add('hidden');
-        cartItems.innerHTML = '';
-        console.log('Showing empty cart');
+        cartItemsContainer.innerHTML = '';
     } else {
         // Hide empty cart, show items and summary
         emptyCart.classList.add('hidden');
@@ -262,32 +276,29 @@ function updateCartDisplay() {
         
         // Generate cart items HTML
         const cartItemsHTML = Object.values(cart).map(item => {
-            console.log('Rendering item:', item);
             return `
-                <div class="flex items-center space-x-3 bg-gray-50 rounded-lg p-3">
+                <div class="flex items-center space-x-3 bg-white rounded-xl shadow-md p-3 border border-gray-100 transition-all duration-200 hover:bg-gray-50">
                     ${item.image ? 
-                        `<img src="${item.image}" alt="${item.name}" class="w-12 h-12 rounded-lg object-cover">` :
-                        `<div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                            </svg>
+                        `<img src="${item.image}" alt="${item.name}" class="w-14 h-14 rounded-lg object-cover flex-shrink-0 shadow-sm">` :
+                        `<div class="w-14 h-14 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <span class="text-orange-500 font-bold">${item.name.substring(0, 1)}</span>
                         </div>`
                     }
                     <div class="flex-1 min-w-0">
-                        <h4 class="text-sm font-medium text-gray-900 truncate">${item.name}</h4>
-                        <p class="text-sm text-gray-600">Rp ${item.price.toLocaleString('id-ID')}</p>
+                        <h4 class="text-base font-medium text-gray-900 truncate">${item.name}</h4>
+                        <p class="text-sm text-gray-500">Rp ${item.price.toLocaleString('id-ID')}</p>
                     </div>
-                    <div class="flex items-center space-x-2">
-                        <button class="decrease-btn w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-300" 
+                    <div class="flex items-center space-x-2 flex-shrink-0">
+                        <button class="decrease-btn w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-300 transition-colors" 
                                 data-menu-id="${item.id}">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
                             </svg>
                         </button>
-                        <span class="w-8 text-center text-sm font-medium">${item.quantity}</span>
-                        <button class="increase-btn w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-300"
+                        <span class="w-6 text-center text-base font-medium">${item.quantity}</span>
+                        <button class="increase-btn w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-300 transition-colors"
                                 data-menu-id="${item.id}">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                             </svg>
                         </button>
@@ -296,10 +307,10 @@ function updateCartDisplay() {
             `;
         }).join('');
         
-        cartItems.innerHTML = cartItemsHTML;
+        cartItemsContainer.innerHTML = cartItemsHTML;
         
         // Add event listeners to quantity buttons
-        cartItems.querySelectorAll('.decrease-btn').forEach(btn => {
+        cartItemsContainer.querySelectorAll('.decrease-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const menuId = this.dataset.menuId;
                 const currentQuantity = cart[menuId].quantity;
@@ -307,7 +318,7 @@ function updateCartDisplay() {
             });
         });
         
-        cartItems.querySelectorAll('.increase-btn').forEach(btn => {
+        cartItemsContainer.querySelectorAll('.increase-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const menuId = this.dataset.menuId;
                 const currentQuantity = cart[menuId].quantity;
@@ -318,8 +329,6 @@ function updateCartDisplay() {
         // Update pricing
         document.getElementById('cart-subtotal').textContent = 'Rp ' + subtotal.toLocaleString('id-ID');
         document.getElementById('cart-total').textContent = 'Rp ' + total.toLocaleString('id-ID');
-        
-        console.log('Cart display updated successfully');
     }
 }
 </script>
