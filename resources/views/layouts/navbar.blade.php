@@ -21,8 +21,9 @@
 
                 <!-- Navigation Links -->
                 @if(auth()->user()->isAdmin())
-                <div class="hidden lg:flex space-x-1 ml-8">
+                <div class="hidden lg:flex space-x-1 ml-8" x-data="{ menuOpen: false }">
                     <a href="{{ route('admin.dashboard') }}" 
+                       @click="menuOpen = false"
                        class="group flex items-center px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 {{ Request::routeIs('admin.dashboard') ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50' }}">
                         <svg class="w-4 h-4 mr-2 {{ Request::routeIs('admin.dashboard') ? 'text-orange-600' : 'text-gray-400 group-hover:text-orange-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
@@ -30,14 +31,48 @@
                         </svg>
                         Dashboard
                     </a>
-                    <a href="{{ route('admin.menu.index') }}" 
-                       class="group flex items-center px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 {{ Request::routeIs('admin.menu.*') ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50' }}">
-                        <svg class="w-4 h-4 mr-2 {{ Request::routeIs('admin.menu.*') ? 'text-orange-600' : 'text-gray-400 group-hover:text-orange-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                        </svg>
-                        Menu
-                    </a>
+                    <!-- Menu Dropdown -->
+                    <div class="relative inline-flex" @click.away="menuOpen = false">
+                        <button @click="menuOpen = !menuOpen" 
+                                class="group inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 {{ Request::routeIs('admin.menu.*') || Request::routeIs('admin.category.*') ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50' }}">
+                            <svg class="w-4 h-4 mr-2 {{ Request::routeIs('admin.menu.*') || Request::routeIs('admin.category.*') ? 'text-orange-600' : 'text-gray-400 group-hover:text-orange-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                            Menu
+                            <svg class="w-4 h-4 ml-1 transition-transform" :class="{ 'rotate-180': menuOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        
+                        <!-- Dropdown Menu -->
+                        <div x-show="menuOpen" 
+                             x-cloak
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="transform opacity-0 scale-95"
+                             x-transition:enter-end="transform opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-75"
+                             x-transition:leave-start="transform opacity-100 scale-100"
+                             x-transition:leave-end="transform opacity-0 scale-95"
+                             class="absolute left-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50"
+                             style="top: 100%; display: none;">
+                            <a href="{{ route('admin.menu.index') }}" 
+                               class="flex items-center px-4 py-2 text-sm {{ Request::routeIs('admin.menu.*') ? 'bg-orange-50 text-orange-700' : 'text-gray-700 hover:bg-orange-50 hover:text-orange-600' }} transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                </svg>
+                                Daftar Menu
+                            </a>
+                            <a href="{{ route('admin.category.index') }}" 
+                               class="flex items-center px-4 py-2 text-sm {{ Request::routeIs('admin.category.*') ? 'bg-orange-50 text-orange-700' : 'text-gray-700 hover:bg-orange-50 hover:text-orange-600' }} transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                </svg>
+                                Kategori
+                            </a>
+                        </div>
+                    </div>
                     <a href="{{ route('admin.order.index') }}" 
+                       @click="menuOpen = false"
                        class="group flex items-center px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 {{ Request::routeIs('admin.order.*') ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50' }}">
                         <svg class="w-4 h-4 mr-2 {{ Request::routeIs('admin.order.*') ? 'text-orange-600' : 'text-gray-400 group-hover:text-orange-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
@@ -45,6 +80,7 @@
                         Pesanan
                     </a>
                     <a href="{{ route('admin.message.index') }}" 
+                       @click="menuOpen = false"
                        class="group flex items-center px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 {{ Request::routeIs('admin.message.*') ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50' }}">
                         <svg class="w-4 h-4 mr-2 {{ Request::routeIs('admin.message.*') ? 'text-orange-600' : 'text-gray-400 group-hover:text-orange-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
@@ -52,8 +88,9 @@
                         Pesan
                     </a>
                     <a href="{{ route('admin.report.index') }}" 
-                       class="flex items-center px-4 py-3 rounded-xl text-base font-medium {{ Request::routeIs('admin.report.*') || Request::routeIs('admin.journal.*') || Request::routeIs('admin.ledger.*') || Request::routeIs('admin.coa.*') ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50' }} transition-all duration-300">
-                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       @click="menuOpen = false"
+                       class="group flex items-center px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 {{ Request::routeIs('admin.report.*') || Request::routeIs('admin.journal.*') || Request::routeIs('admin.ledger.*') || Request::routeIs('admin.coa.*') || Request::routeIs('admin.trial_balance.*') || Request::routeIs('admin.income_statement.*') ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50' }}">
+                        <svg class="w-4 h-4 mr-2 {{ Request::routeIs('admin.report.*') || Request::routeIs('admin.journal.*') || Request::routeIs('admin.ledger.*') || Request::routeIs('admin.coa.*') || Request::routeIs('admin.trial_balance.*') || Request::routeIs('admin.income_statement.*') ? 'text-orange-600' : 'text-gray-400 group-hover:text-orange-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2h14a2 2 0 002-2z"></path>
                         </svg>
                         Laporan
@@ -169,6 +206,13 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                         </svg>
                         Kelola Menu
+                    </a>
+                    <a href="{{ route('admin.category.index') }}" 
+                       class="flex items-center px-4 py-3 rounded-xl text-base font-medium {{ Request::routeIs('admin.category.*') ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50' }} transition-all duration-300">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                        </svg>
+                        Kelola Kategori
                     </a>
                     <a href="{{ route('admin.order.index') }}" 
                        class="flex items-center px-4 py-3 rounded-xl text-base font-medium {{ Request::routeIs('admin.order.*') ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50' }} transition-all duration-300">

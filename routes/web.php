@@ -73,9 +73,18 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::put('/menu/{menu}', [AdminController::class, 'menuUpdate'])->name('menu.update');
     Route::delete('/menu/{menu}', [AdminController::class, 'menuDestroy'])->name('menu.destroy');
     
+    // Category management
+    Route::get('/category', [AdminController::class, 'categoryIndex'])->name('category.index');
+    Route::get('/category/create', [AdminController::class, 'categoryCreate'])->name('category.create');
+    Route::post('/category', [AdminController::class, 'categoryStore'])->name('category.store');
+    Route::get('/category/{category}/edit', [AdminController::class, 'categoryEdit'])->name('category.edit');
+    Route::put('/category/{category}', [AdminController::class, 'categoryUpdate'])->name('category.update');
+    Route::delete('/category/{category}', [AdminController::class, 'categoryDestroy'])->name('category.destroy');
+    
     // Order management
     Route::get('/order', [AdminController::class, 'orderIndex'])->name('order.index');
     Route::get('/order/{order}', [AdminController::class, 'orderShow'])->name('order.show');
+    Route::get('/order/{order}/shipping-label', [AdminController::class, 'orderShippingLabel'])->name('order.shipping-label');
     Route::put('/order/{order}', [AdminController::class, 'orderUpdate'])->name('order.update');
     Route::delete('/order/{order}', [AdminController::class, 'orderDestroy'])->name('order.destroy');
     
@@ -102,9 +111,19 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 
     // 1. Rute Jurnal Umum
     Route::get('/journal', [AdminController::class, 'journalIndex'])->name('journal.index');
+    Route::get('/journal/export', [AdminController::class, 'journalExport'])->name('journal.export');
     
     // 2. Rute Buku Besar
     Route::get('/ledger', [AdminController::class, 'ledgerIndex'])->name('ledger.index');
+    Route::get('/ledger/export', [AdminController::class, 'ledgerExport'])->name('ledger.export');
+
+    // 3. Rute Neraca Saldo
+    Route::get('/trial-balance', [AdminController::class, 'trialBalanceIndex'])->name('trial_balance.index');
+    Route::get('/trial-balance/export', [AdminController::class, 'trialBalanceExport'])->name('trial_balance.export');
+
+    // 4. Rute Laporan Laba Rugi
+    Route::get('/income-statement', [AdminController::class, 'incomeStatementIndex'])->name('income_statement.index');
+    Route::get('/income-statement/export', [AdminController::class, 'incomeStatementExport'])->name('income_statement.export');
 
     // Chart of account
     Route::resource('/chart-of-accounts', ChartOfAccountController::class)->names('chart_of_accounts');

@@ -16,6 +16,7 @@ class Menu extends Model
         'weight', 
         'image',
         'category',
+        'category_id',
         'is_available',
     ];
 
@@ -24,6 +25,14 @@ class Menu extends Model
         'weight' => 'integer', 
         'is_available' => 'boolean',
     ];
+
+    /**
+     * Get the category this menu belongs to.
+     */
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
 
     public function orderItems()
     {

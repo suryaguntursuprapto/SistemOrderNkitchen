@@ -160,6 +160,8 @@ function adminChatApp() {
         isSending: false,
         lastId: 0,
         pollingInterval: null,
+        userIsScrolling: false,
+        scrollTimeout: null,
 
         init() {
             // Start polling when a conversation is selected
@@ -170,6 +172,7 @@ function adminChatApp() {
             this.selectedUserName = userName;
             this.isLoading = true;
             this.chatHtml = '';
+            this.userIsScrolling = false;
             
             // Clear previous polling
             if (this.pollingInterval) {
@@ -190,6 +193,11 @@ function adminChatApp() {
                 
                 // Start polling for this conversation
                 this.startPolling();
+                
+                // Add scroll listener after a short delay
+                this.$nextTick(() => {
+                    this.addScrollListener();
+                });
             } catch (error) {
                 console.error('Error loading chat:', error);
                 this.chatHtml = '<div class="text-center text-red-500 py-8">Gagal memuat percakapan</div>';
@@ -198,10 +206,38 @@ function adminChatApp() {
             }
         },
 
+        addScrollListener() {
+            const container = this.$refs.chatMessages;
+            if (!container) return;
+            
+            container.addEventListener('scroll', () => {
+                // Check if user is actively scrolling up
+                const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+                
+                if (!isAtBottom) {
+                    this.userIsScrolling = true;
+                    
+                    // Reset the flag after user stops scrolling for 2 seconds
+                    if (this.scrollTimeout) {
+                        clearTimeout(this.scrollTimeout);
+                    }
+                    this.scrollTimeout = setTimeout(() => {
+                        // Only reset if still not at bottom
+                        const stillNotAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+                        if (stillNotAtBottom) {
+                            this.userIsScrolling = false;
+                        }
+                    }, 5000);
+                } else {
+                    this.userIsScrolling = false;
+                }
+            });
+        },
+
         scrollToBottom() {
             this.$nextTick(() => {
                 const container = this.$refs.chatMessages;
-                if (container) {
+                if (container && !this.userIsScrolling) {
                     container.scrollTop = container.scrollHeight;
                 }
             });
@@ -230,14 +266,28 @@ function adminChatApp() {
 
                 const data = await response.json();
                 if (data.status === 'success') {
-                    // Reload chat to show new message
-                    await this.selectConversation(this.selectedUserId, this.selectedUserName);
+                    // Reload chat to show new message and scroll to bottom
+                    this.userIsScrolling = false;
+                    await this.reloadChat();
                 }
             } catch (error) {
                 console.error('Error sending reply:', error);
                 this.replyMessage = message; // Restore message on error
             } finally {
                 this.isSending = false;
+            }
+        },
+
+        async reloadChat() {
+            if (!this.selectedUserId) return;
+            
+            try {
+                const response = await fetch(`/admin/message/chat/${this.selectedUserId}`);
+                const data = await response.json();
+                this.chatHtml = data.html;
+                this.scrollToBottom();
+            } catch (error) {
+                console.error('Error reloading chat:', error);
             }
         },
 
@@ -257,8 +307,13 @@ function adminChatApp() {
                 const data = await response.json();
                 
                 if (data.messages && data.messages.length > 0) {
-                    // Reload entire chat to show new messages
-                    await this.selectConversation(this.selectedUserId, this.selectedUserName);
+                    // Only reload if there are truly new messages
+                    // And don't scroll if user is reading old messages
+                    const wasScrolling = this.userIsScrolling;
+                    await this.reloadChat();
+                    if (wasScrolling) {
+                        this.userIsScrolling = true; // Restore the flag
+                    }
                 }
             } catch (error) {
                 console.error('Polling error:', error);

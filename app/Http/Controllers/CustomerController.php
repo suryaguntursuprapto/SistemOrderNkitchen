@@ -193,10 +193,13 @@ class CustomerController extends Controller
             $formattedResults = collect($results)->map(function ($item) {
                 // Kunci yang dikembalikan dari API V2 adalah 'id' (Subdistrict ID) dan 'label'.
                 // Kita harus memetakan 'label' ke 'text' untuk Select2.
+                // Juga ambil postal_code jika tersedia
                 return [
                     'id' => $item['id'] ?? null, 
                     'text' => $item['label'] ?? 'Alamat Tidak Dikenal', 
                     'city_id' => $item['city_name'] ?? null,
+                    'postal_code' => $item['postal_code'] ?? $item['zip_code'] ?? null,
+                    'province' => $item['province'] ?? $item['province_name'] ?? null,
                 ];
             })->filter(function($item) {
                 return $item['id'] !== null; 
@@ -237,10 +240,19 @@ class CustomerController extends Controller
         return view('customer.menu.show', compact('menu'));
     }
 
-    public function orderIndex()
+    public function orderIndex(Request $request)
     {
-        $menus = Menu::available()->paginate(12);
-        return view('customer.order.index', compact('menus'));
+        $query = Menu::available();
+        
+        // Filter by category if provided
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->category);
+        }
+        
+        $menus = $query->paginate(12)->withQueryString();
+        $categories = \App\Models\Category::active()->ordered()->get();
+        
+        return view('customer.order.index', compact('menus', 'categories'));
     }
 
     // app/Http/Controllers/CustomerController.php
@@ -343,6 +355,9 @@ class CustomerController extends Controller
             
             // Validasi Data Pengiriman
             'destination_id' => ['required', 'string'], // Destination ID Komerce
+            'destination_name' => ['required', 'string'], // Nama kota/kecamatan
+            'destination_province' => ['nullable', 'string'], // Provinsi
+            'destination_postal_code' => ['nullable', 'string'], // Kode pos
             'courier' => ['required', 'string'],
             'shipping_service' => ['required', 'string'],
             'shipping_cost' => ['required', 'numeric', 'min:0'],
@@ -422,6 +437,10 @@ class CustomerController extends Controller
                     
                     // <-- DATA PENGIRIMAN DITAMBAHKAN DENGAN BENAR DI SINI -->
                     'city_id' => $validated['destination_id'], 
+                    'destination_city' => $this->extractCityFromDestination($validated['destination_name']),
+                    'destination_district' => $this->extractDistrictFromDestination($validated['destination_name']),
+                    'destination_province' => $validated['destination_province'] ?? $this->extractProvinceFromDestination($validated['destination_name']),
+                    'destination_postal_code' => $validated['destination_postal_code'] ?? null,
                     'courier' => $validated['courier'],
                     'shipping_service' => $validated['shipping_service'],
                     'shipping_cost' => $validated['shipping_cost'], // <-- ONGKIR DITAMBAH SEBAGAI FIELD TERPISAH
@@ -1044,9 +1063,48 @@ class CustomerController extends Controller
         }
     }
     
-    public function orders()
+    public function orders(Request $request)
     {
-        $orders = auth()->user()->orders()->with('orderItems.menu')->latest()->paginate(10);
+        $query = auth()->user()->orders()->with('orderItems.menu');
+
+        // Search filter - by order number
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('order_number', 'like', "%{$search}%");
+        }
+
+        // Status filter
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        // Period filter
+        if ($request->filled('period')) {
+            $now = now();
+            switch ($request->period) {
+                case 'daily':
+                    $query->whereDate('created_at', $now->toDateString());
+                    break;
+                case 'weekly':
+                    $query->whereBetween('created_at', [$now->startOfWeek(), $now->endOfWeek()]);
+                    break;
+                case 'monthly':
+                    $query->whereMonth('created_at', $now->month)
+                          ->whereYear('created_at', $now->year);
+                    break;
+                case 'yearly':
+                    $query->whereYear('created_at', $now->year);
+                    break;
+            }
+        }
+        
+        // Custom date filter
+        if ($request->filled('date')) {
+            $query->whereDate('created_at', $request->date);
+        }
+
+        $orders = $query->latest()->paginate(10)->withQueryString();
+        
         return view('customer.order.history', compact('orders'));
     }
 
@@ -1287,5 +1345,41 @@ class CustomerController extends Controller
     {
         $this->authorize('view', $message);
         return view('customer.message.show', compact('message'));
+    }
+
+    /**
+     * Extract city name from destination string (format: "Kecamatan, Kota/Kabupaten")
+     */
+    private function extractCityFromDestination(string $destination): string
+    {
+        $parts = explode(',', $destination);
+        if (count($parts) >= 2) {
+            return trim($parts[1]); // Kota/Kabupaten
+        }
+        return trim($destination);
+    }
+
+    /**
+     * Extract district name from destination string (format: "Kecamatan, Kota/Kabupaten, Provinsi")
+     */
+    private function extractDistrictFromDestination(string $destination): string
+    {
+        $parts = explode(',', $destination);
+        if (count($parts) >= 1) {
+            return trim($parts[0]); // Kecamatan
+        }
+        return '';
+    }
+
+    /**
+     * Extract province name from destination string (format: "Kecamatan, Kota/Kabupaten, Provinsi")
+     */
+    private function extractProvinceFromDestination(string $destination): string
+    {
+        $parts = explode(',', $destination);
+        if (count($parts) >= 3) {
+            return trim($parts[2]); // Provinsi
+        }
+        return '';
     }
 }

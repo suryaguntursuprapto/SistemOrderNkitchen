@@ -69,22 +69,26 @@
                         </div>
 
                         <div class="space-y-2">
-                            <label for="category" class="block text-sm font-semibold text-gray-700">
+                            <label for="category_id" class="block text-sm font-semibold text-gray-700">
                                 Kategori
                                 <span class="text-red-500">*</span>
                             </label>
                             <div class="relative transform transition-transform duration-300">
-                                <select name="category" id="category" required
-                                        class="block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300 @error('category') border-red-500 ring-2 ring-red-200 @enderror">
+                                <select name="category_id" id="category_id" required
+                                        class="block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300 @error('category_id') border-red-500 ring-2 ring-red-200 @enderror">
                                     <option value="">Pilih Kategori</option>
-                                    <option value="pempek" {{ old('category', $menu->category) == 'pempek' ? 'selected' : '' }}>🍤 Pempek</option>
-                                    <option value="tekwan" {{ old('category', $menu->category) == 'tekwan' ? 'selected' : '' }}>🍲 Tekwan</option>
-                                    <option value="model" {{ old('category', $menu->category) == 'model' ? 'selected' : '' }}>🥟 Model</option>
-                                    <option value="minuman" {{ old('category', $menu->category) == 'minuman' ? 'selected' : '' }}>🥤 Minuman</option>
+                                    @foreach($categories as $category)
+                                        <option value="{{ $category->id }}" {{ old('category_id', $menu->category_id) == $category->id ? 'selected' : '' }}>
+                                            {{ $category->icon }} {{ $category->name }}
+                                        </option>
+                                    @endforeach
                                 </select>
                                 <div class="absolute inset-0 rounded-xl ring-1 ring-inset ring-gray-300 pointer-events-none"></div>
                             </div>
-                            @error('category')
+                            <p class="text-xs text-gray-500">
+                                <a href="{{ route('admin.category.create') }}" class="text-blue-600 hover:underline">+ Tambah kategori baru</a>
+                            </p>
+                            @error('category_id')
                                 <div class="flex items-center space-x-2 mt-2">
                                     <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>

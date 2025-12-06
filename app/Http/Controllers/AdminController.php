@@ -10,11 +10,16 @@ use App\Models\Journal;
 use App\Models\ChartOfAccount;
 use App\Models\Purchase;
 use App\Models\Conversation;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Routing\Controller;
 use App\Models\Expense;
 use App\Exports\FinancialReportExport;
+use App\Exports\JournalExport;
+use App\Exports\LedgerExport;
+use App\Exports\TrialBalanceExport;
+use App\Exports\IncomeStatementExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 use App\Services\AccountingService;
@@ -60,7 +65,8 @@ class AdminController extends Controller
 
     public function menuCreate()
     {
-        return view('admin.menu.create');
+        $categories = Category::active()->ordered()->get();
+        return view('admin.menu.create', compact('categories'));
     }
 
     public function menuStore(Request $request)
@@ -70,7 +76,7 @@ class AdminController extends Controller
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
             'weight' => 'required|integer|min:1', 
-            'category' => 'required|string|max:255',
+            'category_id' => 'required|exists:categories,id',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'is_available' => 'boolean',
         ]);
@@ -91,7 +97,8 @@ class AdminController extends Controller
 
     public function menuEdit(Menu $menu)
     {
-        return view('admin.menu.edit', compact('menu'));
+        $categories = Category::active()->ordered()->get();
+        return view('admin.menu.edit', compact('menu', 'categories'));
     }
 
     public function menuUpdate(Request $request, Menu $menu)
@@ -101,7 +108,7 @@ class AdminController extends Controller
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
             'weight' => 'required|integer|min:1', 
-            'category' => 'required|string|max:255',
+            'category_id' => 'required|exists:categories,id',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'is_available' => 'boolean',
         ]);
@@ -127,6 +134,70 @@ class AdminController extends Controller
         $menu->delete();
 
         return redirect()->route('admin.menu.index')->with('success', 'Menu berhasil dihapus!');
+    }
+
+    // ==================== CATEGORY MANAGEMENT ====================
+
+    public function categoryIndex()
+    {
+        $categories = Category::withCount('menus')->ordered()->paginate(15);
+        return view('admin.category.index', compact('categories'));
+    }
+
+    public function categoryCreate()
+    {
+        return view('admin.category.create');
+    }
+
+    public function categoryStore(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:500',
+            'icon' => 'nullable|string|max:50',
+            'sort_order' => 'nullable|integer|min:0',
+            'is_active' => 'boolean',
+        ]);
+
+        $validated['is_active'] = $request->has('is_active');
+        $validated['sort_order'] = $validated['sort_order'] ?? 0;
+
+        Category::create($validated);
+
+        return redirect()->route('admin.category.index')->with('success', 'Kategori berhasil ditambahkan!');
+    }
+
+    public function categoryEdit(Category $category)
+    {
+        return view('admin.category.edit', compact('category'));
+    }
+
+    public function categoryUpdate(Request $request, Category $category)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:500',
+            'icon' => 'nullable|string|max:50',
+            'sort_order' => 'nullable|integer|min:0',
+            'is_active' => 'boolean',
+        ]);
+
+        $validated['is_active'] = $request->has('is_active');
+        $validated['sort_order'] = $validated['sort_order'] ?? 0;
+
+        $category->update($validated);
+
+        return redirect()->route('admin.category.index')->with('success', 'Kategori berhasil diperbarui!');
+    }
+
+    public function categoryDestroy(Category $category)
+    {
+        // Set menus in this category to null
+        $category->menus()->update(['category_id' => null]);
+        
+        $category->delete();
+
+        return redirect()->route('admin.category.index')->with('success', 'Kategori berhasil dihapus!');
     }
 
     // Order Management
@@ -193,6 +264,12 @@ class AdminController extends Controller
     {
         $order->load(['user', 'orderItems.menu']);
         return view('admin.order.show', compact('order'));
+    }
+
+    public function orderShippingLabel(Order $order)
+    {
+        $order->load(['user', 'orderItems.menu']);
+        return view('admin.order.shipping-label', compact('order'));
     }
 
     public function orderUpdate(Request $request, Order $order)
@@ -581,8 +658,181 @@ class AdminController extends Controller
                 $subQuery->whereBetween('date', [$startDate, $endDate]);
             })->with('journal');
         }])
+        ->orderBy('code', 'asc')
         ->get();
 
         return view('admin.report.ledger', compact('accounts', 'startDate', 'endDate'));
+    }
+
+    /**
+     * 📥 Export Jurnal Umum ke Excel
+     */
+    public function journalExport(Request $request)
+    {
+        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
+        $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
+        
+        $fileName = 'jurnal_umum_' . $startDate . '_sd_' . $endDate . '.xlsx';
+        return Excel::download(new JournalExport($startDate, $endDate), $fileName);
+    }
+
+    /**
+     * 📥 Export Buku Besar ke Excel
+     */
+    public function ledgerExport(Request $request)
+    {
+        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
+        $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
+        
+        $fileName = 'buku_besar_' . $startDate . '_sd_' . $endDate . '.xlsx';
+        return Excel::download(new LedgerExport($startDate, $endDate), $fileName);
+    }
+
+    /**
+     * ⚖️ Menampilkan Neraca Saldo
+     */
+    public function trialBalanceIndex(Request $request)
+    {
+        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
+        $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
+
+        $accounts = ChartOfAccount::with(['journalTransactions' => function ($query) use ($startDate, $endDate) {
+            $query->whereHas('journal', function ($subQuery) use ($startDate, $endDate) {
+                $subQuery->whereBetween('date', [$startDate, $endDate]);
+            });
+        }])
+        ->orderBy('code', 'asc')
+        ->get();
+
+        // Calculate balances
+        $trialBalance = [];
+        $totalDebit = 0;
+        $totalCredit = 0;
+
+        foreach ($accounts as $account) {
+            $sumDebit = $account->journalTransactions->sum('debit');
+            $sumCredit = $account->journalTransactions->sum('credit');
+
+            if ($sumDebit == 0 && $sumCredit == 0) {
+                continue;
+            }
+
+            $isDebitNormal = $account->normal_balance === 'debit';
+            $openingBalance = $account->opening_balance ?? 0;
+            
+            if ($isDebitNormal) {
+                $balance = $openingBalance + $sumDebit - $sumCredit;
+                $debitBalance = $balance > 0 ? $balance : 0;
+                $creditBalance = $balance < 0 ? abs($balance) : 0;
+            } else {
+                $balance = $openingBalance + $sumCredit - $sumDebit;
+                $creditBalance = $balance > 0 ? $balance : 0;
+                $debitBalance = $balance < 0 ? abs($balance) : 0;
+            }
+
+            $totalDebit += $debitBalance;
+            $totalCredit += $creditBalance;
+
+            $trialBalance[] = [
+                'code' => $account->code,
+                'name' => $account->name,
+                'type' => $account->type,
+                'debit' => $debitBalance,
+                'credit' => $creditBalance,
+            ];
+        }
+
+        return view('admin.report.trial-balance', compact('trialBalance', 'totalDebit', 'totalCredit', 'startDate', 'endDate'));
+    }
+
+    /**
+     * 📥 Export Neraca Saldo ke Excel
+     */
+    public function trialBalanceExport(Request $request)
+    {
+        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
+        $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
+        
+        $fileName = 'neraca_saldo_' . $startDate . '_sd_' . $endDate . '.xlsx';
+        return Excel::download(new TrialBalanceExport($startDate, $endDate), $fileName);
+    }
+
+    /**
+     * 📈 Menampilkan Laporan Laba Rugi Detail
+     */
+    public function incomeStatementIndex(Request $request)
+    {
+        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
+        $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
+
+        // Revenue accounts
+        $revenueAccounts = ChartOfAccount::where('type', 'pendapatan')
+            ->orWhere('type', 'revenue')
+            ->with(['journalTransactions' => function ($query) use ($startDate, $endDate) {
+                $query->whereHas('journal', function ($subQuery) use ($startDate, $endDate) {
+                    $subQuery->whereBetween('date', [$startDate, $endDate]);
+                });
+            }])
+            ->orderBy('code', 'asc')
+            ->get();
+
+        // Expense accounts
+        $expenseAccounts = ChartOfAccount::where('type', 'beban')
+            ->orWhere('type', 'expense')
+            ->with(['journalTransactions' => function ($query) use ($startDate, $endDate) {
+                $query->whereHas('journal', function ($subQuery) use ($startDate, $endDate) {
+                    $subQuery->whereBetween('date', [$startDate, $endDate]);
+                });
+            }])
+            ->orderBy('code', 'asc')
+            ->get();
+
+        // Calculate revenue
+        $revenues = [];
+        $totalRevenue = 0;
+        foreach ($revenueAccounts as $account) {
+            $balance = $account->journalTransactions->sum('credit') - $account->journalTransactions->sum('debit');
+            if ($balance != 0) {
+                $totalRevenue += $balance;
+                $revenues[] = [
+                    'code' => $account->code,
+                    'name' => $account->name,
+                    'amount' => $balance,
+                ];
+            }
+        }
+
+        // Calculate expenses
+        $expenses = [];
+        $totalExpenses = 0;
+        foreach ($expenseAccounts as $account) {
+            $balance = $account->journalTransactions->sum('debit') - $account->journalTransactions->sum('credit');
+            if ($balance != 0) {
+                $totalExpenses += $balance;
+                $expenses[] = [
+                    'code' => $account->code,
+                    'name' => $account->name,
+                    'amount' => $balance,
+                ];
+            }
+        }
+
+        $netIncome = $totalRevenue - $totalExpenses;
+
+        return view('admin.report.income-statement', compact(
+            'revenues', 'expenses', 'totalRevenue', 'totalExpenses', 'netIncome', 'startDate', 'endDate'
+        ));
+    }
+
+    /**
+     * 📥 Export Laporan Laba Rugi ke Excel
+     */
+    public function incomeStatementExport(Request $request)
+    {
+        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
+        $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
+        
+        $fileName = 'laporan_laba_rugi_' . $startDate . '_sd_' . $endDate . '.xlsx';
+        return Excel::download(new IncomeStatementExport($startDate, $endDate), $fileName);
     }
 }

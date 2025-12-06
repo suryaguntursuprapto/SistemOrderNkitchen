@@ -3,16 +3,27 @@
 @section('content')
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="py-6">
-        <div class="flex items-center space-x-4">
-            <a href="{{ route('admin.order.index') }}" class="text-gray-400 hover:text-gray-600">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-            </a>
-            <div>
-                <h1 class="text-3xl font-bold text-gray-900">Detail Pesanan</h1>
-                <p class="mt-1 text-sm text-gray-600">{{ $order->order_number }}</p>
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <a href="{{ route('admin.order.index') }}" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                </a>
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Detail Pesanan</h1>
+                    <p class="mt-1 text-sm text-gray-600">{{ $order->order_number }}</p>
+                </div>
             </div>
+            <!-- Print Label Button -->
+            <a href="{{ route('admin.order.shipping-label', $order) }}" 
+               style="background: linear-gradient(to right, #22c55e, #059669);"
+               class="flex items-center text-white px-5 py-2.5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                </svg>
+                Cetak Label
+            </a>
         </div>
     </div>
 
@@ -56,7 +67,7 @@
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Tanggal:</span>
-                                <span class="text-gray-900">{{ $order->created_at->format('d M Y, H:i') }}</span>
+                                <span class="text-gray-900">{{ $order->created_at->format('d M Y, H:i') }} WIB</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Total:</span>
@@ -70,7 +81,7 @@
                         <div class="space-y-2 text-sm">
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Nama:</span>
-                                <span class="text-gray-900">{{ $order->user->name }}</span>
+                                <span class="text-gray-900">{{ $order->recipient_name }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Email:</span>

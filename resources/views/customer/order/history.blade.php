@@ -2,15 +2,15 @@
 
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="py-6">
+    <div class="rounded-2xl shadow-lg p-6 mb-8 mt-6" style="background: linear-gradient(to right, #ea580c, #ef4444);">
         <div class="flex items-center justify-between">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900">Riwayat Pesanan</h1>
-                <p class="mt-1 text-sm text-gray-600">Lihat status dan detail pesanan Anda</p>
+                <h1 class="text-3xl font-bold text-white">Riwayat Pesanan</h1>
+                <p class="mt-1 text-sm text-white/90">Lihat status dan detail pesanan Anda</p>
             </div>
             <div>
                 <a href="{{ route('customer.order.index') }}" 
-                   class="inline-flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-lg transition-colors duration-200">
+                   class="inline-flex items-center px-4 py-2 bg-white text-orange-600 hover:bg-orange-50 font-bold rounded-xl transition-all duration-200 shadow-sm">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                     </svg>
@@ -18,6 +18,62 @@
                 </a>
             </div>
         </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+        <form action="{{ route('customer.orders') }}" method="GET">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <!-- Search Box -->
+                <div class="md:col-span-5">
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                            <svg class="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none">
+                                <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                            </svg>
+                        </span>
+                        <input type="text" name="search" value="{{ request('search') }}" 
+                               placeholder="Cari No. Pesanan..."
+                               class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all text-gray-700 placeholder-gray-400 font-medium bg-gray-50 focus:bg-white">
+                    </div>
+                </div>
+
+                <!-- Status Filter -->
+                <div class="md:col-span-3">
+                    <select name="status" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all text-gray-700 font-medium bg-gray-50 focus:bg-white cursor-pointer appearance-none">
+                        <option value="all">📝 Semua Status</option>
+                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>⏳ Menunggu</option>
+                        <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>✅ Dikonfirmasi</option>
+                        <option value="preparing" {{ request('status') == 'preparing' ? 'selected' : '' }}>👨‍🍳 Disiapkan</option>
+                        <option value="ready" {{ request('status') == 'ready' ? 'selected' : '' }}>🚚 Dalam Perjalanan</option>
+                        <option value="delivered" {{ request('status') == 'delivered' ? 'selected' : '' }}>🎉 Selesai</option>
+                        <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>❌ Dibatalkan</option>
+                    </select>
+                </div>
+
+                <!-- Period Filter -->
+                <div class="md:col-span-2">
+                    <select name="period" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all text-gray-700 font-medium bg-gray-50 focus:bg-white cursor-pointer appearance-none">
+                        <option value="">📅 Semua Waktu</option>
+                        <option value="daily" {{ request('period') == 'daily' ? 'selected' : '' }}>Hari Ini</option>
+                        <option value="weekly" {{ request('period') == 'weekly' ? 'selected' : '' }}>Minggu Ini</option>
+                        <option value="monthly" {{ request('period') == 'monthly' ? 'selected' : '' }}>Bulan Ini</option>
+                    </select>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="md:col-span-2 flex space-x-2">
+                    <button type="submit" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center">
+                        Cari
+                    </button>
+                    @if(request()->hasAny(['search', 'status', 'period']))
+                        <a href="{{ route('customer.orders') }}" class="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl font-medium transition-all flex items-center justify-center">
+                            ✕
+                        </a>
+                    @endif
+                </div>
+            </div>
+        </form>
     </div>
 
     @if($orders->count() > 0)
@@ -170,6 +226,27 @@
                                             <div>
                                                 <p class="text-sm font-semibold text-gray-700">Nomor Resi:</p>
                                                 <p class="text-sm font-mono bg-green-50 text-green-700 px-2 py-1 rounded mt-1 inline-block">{{ $order->tracking_number }}</p>
+                                            </div>
+                                        </div>
+                                    @endif
+                                    
+                                    @if($order->destination_district || $order->destination_city)
+                                        <div class="flex items-start space-x-3">
+                                            <svg class="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            </svg>
+                                            <div>
+                                                <p class="text-sm font-semibold text-gray-700">Lokasi Tujuan:</p>
+                                                <p class="text-sm text-gray-600 mt-1">
+                                                    @if($order->destination_district)
+                                                        {{ $order->destination_district }}{{ $order->destination_city ? ', ' : '' }}
+                                                    @endif
+                                                    {{ $order->destination_city }}{{ $order->destination_province ? ', ' . $order->destination_province : '' }}
+                                                    @if($order->destination_postal_code)
+                                                        <span class="text-gray-500">({{ $order->destination_postal_code }})</span>
+                                                    @endif
+                                                </p>
                                             </div>
                                         </div>
                                     @endif

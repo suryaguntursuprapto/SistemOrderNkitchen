@@ -178,11 +178,19 @@
                 <div class="border-t pt-4">
                     <h4 class="font-semibold text-gray-900 mb-3">Informasi Pengiriman</h4>
                     <div class="space-y-2 text-sm">
-                        <p><span class="font-medium text-gray-700">Nama:</span> {{ $order->user->name }}</p>
+                        <p><span class="font-medium text-gray-700">Nama:</span> {{ $order->recipient_name }}</p>
                         <p><span class="font-medium text-gray-700">Telepon:</span> {{ $order->phone }}</p>
                         <p><span class="font-medium text-gray-700">Alamat:</span> {{ $order->delivery_address }}</p>
                         @if($order->courier)
                             <p><span class="font-medium text-gray-700">Kurir:</span> {{ strtoupper($order->courier) }} {{ $order->shipping_service ? '(' . $order->shipping_service . ')' : '' }}</p>
+                        @endif
+                        @if($order->destination_district || $order->destination_city)
+                            <p><span class="font-medium text-gray-700">📍 Tujuan:</span> 
+                                @if($order->destination_district)
+                                    {{ $order->destination_district }}{{ $order->destination_city ? ', ' : '' }}
+                                @endif
+                                {{ $order->destination_city }}{{ $order->destination_province ? ', ' . $order->destination_province : '' }}{{ $order->destination_postal_code ? ' (' . $order->destination_postal_code . ')' : '' }}
+                            </p>
                         @endif
                         @if($order->notes)
                             <p><span class="font-medium text-gray-700">Catatan:</span> {{ $order->notes }}</p>
@@ -305,7 +313,7 @@
                             <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
                             <div class="text-sm">
                                 <p class="font-medium">Pesanan dibuat</p>
-                                <p class="text-gray-500">{{ $order->created_at->format('d M Y H:i') }}</p>
+                                <p class="text-gray-500">{{ $order->created_at->format('d M Y H:i') }} WIB</p>
                             </div>
                         </div>
                         
@@ -314,7 +322,7 @@
                                 <div class="w-3 h-3 bg-green-500 rounded-full"></div>
                                 <div class="text-sm">
                                     <p class="font-medium">Pembayaran dikonfirmasi</p>
-                                    <p class="text-gray-500">{{ $order->payment->paid_at->format('d M Y H:i') }}</p>
+                                    <p class="text-gray-500">{{ $order->payment->paid_at->format('d M Y H:i') }} WIB</p>
                                 </div>
                             </div>
                         @endif
@@ -324,7 +332,7 @@
                                 <div class="w-3 h-3 bg-purple-500 rounded-full"></div>
                                 <div class="text-sm">
                                     <p class="font-medium">Pesanan sedang diproses</p>
-                                    <p class="text-gray-500">{{ $order->updated_at->format('d M Y H:i') }}</p>
+                                    <p class="text-gray-500">{{ $order->updated_at->format('d M Y H:i') }} WIB</p>
                                 </div>
                             </div>
                         @elseif($order->status === 'delivered')
@@ -332,7 +340,7 @@
                                 <div class="w-3 h-3 bg-emerald-500 rounded-full"></div>
                                 <div class="text-sm">
                                     <p class="font-medium">Pesanan selesai</p>
-                                    <p class="text-gray-500">{{ $order->updated_at->format('d M Y H:i') }}</p>
+                                    <p class="text-gray-500">{{ $order->updated_at->format('d M Y H:i') }} WIB</p>
                                 </div>
                             </div>
                         @endif

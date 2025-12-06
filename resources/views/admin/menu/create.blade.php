@@ -65,25 +65,27 @@
                     </div>
 
                     <div class="group">
-                        <label for="category" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                        <label for="category_id" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
                             <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                             </svg>
                             Kategori
                         </label>
-                        <select name="category" 
-                                id="category"
-                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 group-hover:border-green-300 @error('category') border-red-500 @enderror"
+                        <select name="category_id" 
+                                id="category_id"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 group-hover:border-green-300 @error('category_id') border-red-500 @enderror"
                                 required>
                             <option value="">Pilih Kategori</option>
-                            <option value="Pempek" {{ old('category') == 'Pempek' ? 'selected' : '' }}>Pempek</option>
-                            <option value="Tekwan" {{ old('category') == 'Tekwan' ? 'selected' : '' }}>Tekwan</option>
-                            <option value="Model" {{ old('category') == 'Model' ? 'selected' : '' }}>Model</option>
-                            <option value="Es Kacang Merah" {{ old('category') == 'Es Kacang Merah' ? 'selected' : '' }}>Es Kacang Merah</option>
-                            <option value="Minuman" {{ old('category') == 'Minuman' ? 'selected' : '' }}>Minuman</option>
-                            <option value="Lainnya" {{ old('category') == 'Lainnya' ? 'selected' : '' }}>Lainnya</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>
+                                    {{ $category->icon }} {{ $category->name }}
+                                </option>
+                            @endforeach
                         </select>
-                        @error('category')
+                        <p class="text-xs text-gray-500 mt-1">
+                            <a href="{{ route('admin.category.create') }}" class="text-blue-600 hover:underline">+ Tambah kategori baru</a>
+                        </p>
+                        @error('category_id')
                             <p class="text-red-500 text-sm mt-2 flex items-center">
                                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>

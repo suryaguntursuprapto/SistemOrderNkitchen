@@ -22,6 +22,9 @@
     
     <!-- Custom Styles -->
     <style>
+        /* Hide Alpine.js components until initialized */
+        [x-cloak] { display: none !important; }
+        
         /* ===== CSS VARIABLES ===== */
         :root {
             --primary-gradient: linear-gradient(135deg, #f97316, #dc2626);

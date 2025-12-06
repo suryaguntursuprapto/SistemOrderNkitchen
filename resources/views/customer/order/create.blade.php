@@ -15,18 +15,33 @@
 @endphp
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-gray-900" x-data="checkoutForm()">
-    <div class="py-6">
-        <nav class="flex mb-4" aria-label="Breadcrumb">
-            <ol class="inline-flex items-center space-x-1 md:space-x-3">
-                <li class="inline-flex items-center">
-                    <a href="{{ route('customer.order.index') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-orange-600">
-                        ← Kembali ke Menu
-                    </a>
-                </li>
-            </ol>
-        </nav>
-        <h1 class="text-3xl font-bold text-gray-900">Checkout Pesanan</h1>
-        <p class="mt-1 text-sm text-gray-600">Lengkapi data pengiriman dan pilih metode pembayaran</p>
+    <div class="rounded-2xl shadow-lg p-6 mb-8 mt-6" style="background: linear-gradient(to right, #ea580c, #ef4444);">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <nav class="flex mb-2" aria-label="Breadcrumb">
+                    <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                        <li class="inline-flex items-center">
+                            <a href="{{ route('customer.order.index') }}" class="inline-flex items-center text-sm font-medium text-white/80 hover:text-white transition-colors">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                                </svg>
+                                Kembali ke Menu
+                            </a>
+                        </li>
+                    </ol>
+                </nav>
+                <h1 class="text-3xl font-bold text-white">Checkout Pesanan</h1>
+                <p class="mt-1 text-sm text-white/90">Lengkapi data pengiriman dan pilih metode pembayaran</p>
+            </div>
+            
+            <div class="hidden md:block">
+                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m0 0L17 21"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
     </div>
 
     @if(session('error'))
@@ -41,7 +56,7 @@
         <!-- Kolom Kiri: Form Detail Pengiriman -->
         <!-- Di mobile: order-1 = muncul pertama -->
         <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden order-1 lg:order-1">
-            <div class="bg-blue-500 px-4 sm:px-6 py-3 sm:py-4">
+            <div class="px-4 sm:px-6 py-3 sm:py-4" style="background: linear-gradient(to right, #3b82f6, #2563eb);">
                 <h3 class="text-base sm:text-lg font-semibold text-white flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
@@ -239,6 +254,9 @@
                 
                 <input type="hidden" name="total_weight" value="{{ $totalWeight }}"> 
                 <input type="hidden" name="shipping_cost" x-model="shippingCost">
+                <input type="hidden" name="destination_name" x-model="selectedDestinationText">
+                <input type="hidden" name="destination_province" x-model="selectedDestinationProvince">
+                <input type="hidden" name="destination_postal_code" x-model="selectedDestinationPostalCode">
                 <input type="hidden" name="item_value" value="{{ $itemValue }}"> </div>
         </div>
         
@@ -249,7 +267,7 @@
             
             <!-- Ringkasan Pesanan -->
             <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden mb-4 sm:mb-6">
-                <div class="bg-orange-500 px-4 sm:px-6 py-3 sm:py-4">
+                <div class="px-4 sm:px-6 py-3 sm:py-4" style="background: linear-gradient(to right, #f97316, #ea580c);">
                     <div class="flex items-center justify-between">
                         <h3 class="text-base sm:text-lg font-semibold text-white flex items-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -267,13 +285,13 @@
                     <!-- Daftar Item -->
                     <div class="space-y-3 mb-4 max-h-48 sm:max-h-60 overflow-y-auto pr-1">
                         @foreach($validCartItems as $item)
-                            <div class="flex items-start gap-3 p-2.5 sm:p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-100">
+                            <div class="flex items-start gap-3 p-2.5 sm:p-3 rounded-xl border border-gray-100" style="background: linear-gradient(to right, #f9fafb, #f3f4f6);">
                                 @if($item['image'])
                                     <img src="{{ $item['image'] }}" 
                                          alt="{{ $item['name'] }}" 
                                          class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover shadow-sm flex-shrink-0">
                                 @else
-                                    <div class="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm flex-shrink-0">
+                                    <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm flex-shrink-0" style="background: linear-gradient(to bottom right, #fb923c, #ef4444);">
                                         {{ substr($item['name'], 0, 1) }}
                                     </div>
                                 @endif
@@ -292,7 +310,7 @@
                     </div>
 
                     <!-- Total Summary -->
-                    <div class="bg-gradient-to-br from-orange-50 to-yellow-50 p-4 rounded-xl border border-orange-100">
+                    <div class="p-4 rounded-xl border border-orange-100" style="background: linear-gradient(to bottom right, #fff7ed, #fefce8);">
                         <div class="flex justify-between items-center mb-2 text-sm">
                             <span class="text-gray-600">Subtotal Menu</span>
                             <span class="font-medium text-gray-800">Rp {{ number_format($subtotalMenu, 0, ',', '.') }}</span>
@@ -424,6 +442,8 @@
             grandTotal: subtotalMenu,
             selectedDestinationId: '{{ old('destination_id') }}',
             selectedDestinationText: '', // Nama lokasi tujuan untuk deteksi GoSend
+            selectedDestinationProvince: '', // Provinsi tujuan
+            selectedDestinationPostalCode: '', // Kode pos tujuan
             isLocalKarawang: false, // Apakah lokasi dalam jangkauan GoSend (Karawang)
             selectedCourier: '',
             selectedService: '',
@@ -506,6 +526,32 @@
                     this.selectedDestinationText = e.params.data.text || '';
                     this.isLocalKarawang = this.selectedDestinationText.toUpperCase().includes('KARAWANG');
                     
+                    // 5b. Ambil provinsi dan kode pos dari data API (jika tersedia)
+                    // Prioritas: gunakan data langsung dari API, fallback ke ekstraksi dari text
+                    if (e.params.data.postal_code) {
+                        this.selectedDestinationPostalCode = e.params.data.postal_code;
+                    } else {
+                        this.selectedDestinationPostalCode = '';
+                    }
+                    
+                    if (e.params.data.province) {
+                        this.selectedDestinationProvince = e.params.data.province;
+                    } else {
+                        // Fallback: extract dari text jika API tidak return province
+                        const parts = this.selectedDestinationText.split(',');
+                        if (parts.length >= 3) {
+                            this.selectedDestinationProvince = parts[2].trim();
+                        } else {
+                            this.selectedDestinationProvince = '';
+                        }
+                    }
+                    
+                    console.log('Destination data:', {
+                        text: this.selectedDestinationText,
+                        province: this.selectedDestinationProvince,
+                        postalCode: this.selectedDestinationPostalCode
+                    });
+                    
                     // 6. Update list kurir berdasarkan lokasi
                     this.updateCourierList();
 
@@ -517,6 +563,8 @@
                 .on('select2:unselect', (e) => {
                     this.selectedDestinationId = '';
                     this.selectedDestinationText = '';
+                    this.selectedDestinationProvince = '';
+                    this.selectedDestinationPostalCode = '';
                     this.isLocalKarawang = false;
                     this.updateCourierList();
                     this.resetShipping();
@@ -756,8 +804,30 @@
                 alpineData.selectedDestinationText = e.params.data.text || '';
                 alpineData.isLocalKarawang = alpineData.selectedDestinationText.toUpperCase().includes('KARAWANG');
                 
-                console.log('Destination selected:', alpineData.selectedDestinationText);
-                console.log('Is Karawang:', alpineData.isLocalKarawang);
+                // Ambil provinsi dan kode pos dari data API (jika tersedia)
+                if (e.params.data.postal_code) {
+                    alpineData.selectedDestinationPostalCode = e.params.data.postal_code;
+                } else {
+                    alpineData.selectedDestinationPostalCode = '';
+                }
+                
+                if (e.params.data.province) {
+                    alpineData.selectedDestinationProvince = e.params.data.province;
+                } else {
+                    // Fallback: extract dari text jika API tidak return province
+                    const parts = alpineData.selectedDestinationText.split(',');
+                    if (parts.length >= 3) {
+                        alpineData.selectedDestinationProvince = parts[2].trim();
+                    } else {
+                        alpineData.selectedDestinationProvince = '';
+                    }
+                }
+                
+                console.log('Destination data:', {
+                    text: alpineData.selectedDestinationText,
+                    province: alpineData.selectedDestinationProvince,
+                    postalCode: alpineData.selectedDestinationPostalCode
+                });
                 
                 if (alpineData.selectedDestinationId && alpineData.selectedCourier) {
                     alpineData.checkShipping();
@@ -767,6 +837,8 @@
             .on('select2:unselect', (e) => {
                 alpineData.selectedDestinationId = '';
                 alpineData.selectedDestinationText = '';
+                alpineData.selectedDestinationProvince = '';
+                alpineData.selectedDestinationPostalCode = '';
                 alpineData.isLocalKarawang = false;
                 alpineData.resetShipping();
             });

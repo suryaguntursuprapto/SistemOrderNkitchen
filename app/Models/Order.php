@@ -23,6 +23,10 @@ class Order extends Model
         'courier',
         'shipping_service',
         'city_id',
+        'destination_city',
+        'destination_district',
+        'destination_province',
+        'destination_postal_code',
         'total_weight',
     ];
 
