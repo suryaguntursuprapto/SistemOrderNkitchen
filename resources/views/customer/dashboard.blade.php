@@ -14,8 +14,7 @@
                     <div class="flex items-center">
                         <img src="{{ asset('images/logo.png') }}" alt="N-Kitchen" class="w-16 h-16 rounded-xl shadow-lg mr-4">
                         <div>
-                            <h1 class="text-3xl md:text-4xl font-bold text-white mb-1">Selamat Datang!</h1>
-                            <p class="text-white/90 text-lg">{{ auth()->user()->name }}</p>
+                            <h1 class="text-3xl md:text-4xl font-bold text-white mb-1">Selamat Datang {{ auth()->user()->name }}!</h1>
                         </div>
                     </div>
                     <div class="text-right hidden md:block">
