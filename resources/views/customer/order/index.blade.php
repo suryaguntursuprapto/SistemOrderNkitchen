@@ -5,7 +5,7 @@
     
     <div class="rounded-2xl shadow-lg p-8 mb-10 mt-2" style="background: linear-gradient(to right, #ea580c, #ef4444);">
         <h1 class="text-4xl font-extrabold text-white mb-2">
-            Menu Pempek N-Kitchen
+            Menu N-Kitchen
         </h1>
         <p class="text-lg text-white/90">Pilih menu favorit Anda dan masukkan ke keranjang untuk proses *checkout*.</p>
     </div>
