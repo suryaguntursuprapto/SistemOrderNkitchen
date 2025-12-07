@@ -42,12 +42,51 @@ class AdminController extends Controller
 
     public function dashboard()
     {
+        // Calculate Monthly Profit/Loss from Journal (same as Income Statement)
+        $startDate = Carbon::now()->startOfMonth()->toDateString();
+        $endDate = Carbon::now()->endOfMonth()->toDateString();
+
+        // Get revenue from pendapatan accounts (same as income statement)
+        $revenueAccounts = ChartOfAccount::where('type', 'pendapatan')
+            ->orWhere('type', 'revenue')
+            ->with(['journalTransactions' => function ($query) use ($startDate, $endDate) {
+                $query->whereHas('journal', function ($subQuery) use ($startDate, $endDate) {
+                    $subQuery->whereBetween('date', [$startDate, $endDate]);
+                });
+            }])
+            ->get();
+
+        $totalRevenue = 0;
+        foreach ($revenueAccounts as $account) {
+            $balance = $account->journalTransactions->sum('credit') - $account->journalTransactions->sum('debit');
+            $totalRevenue += $balance;
+        }
+
+        // Get expenses from beban accounts (same as income statement)
+        $expenseAccounts = ChartOfAccount::where('type', 'beban')
+            ->orWhere('type', 'expense')
+            ->with(['journalTransactions' => function ($query) use ($startDate, $endDate) {
+                $query->whereHas('journal', function ($subQuery) use ($startDate, $endDate) {
+                    $subQuery->whereBetween('date', [$startDate, $endDate]);
+                });
+            }])
+            ->get();
+
+        $totalExpenses = 0;
+        foreach ($expenseAccounts as $account) {
+            $balance = $account->journalTransactions->sum('debit') - $account->journalTransactions->sum('credit');
+            $totalExpenses += $balance;
+        }
+
+        $monthlyProfit = $totalRevenue - $totalExpenses;
+
         $stats = [
             'total_orders' => Order::count(),
             'pending_orders' => Order::where('status', 'pending')->count(),
             'total_customers' => User::where('role', 'customer')->count(),
             'unread_messages' => Message::unread()->count(),
-            'total_revenue' => Order::whereIn('status', ['delivered'])->sum('total_amount'),
+            'monthly_profit' => $monthlyProfit, // Laba/Rugi bulan ini dari jurnal
+            'current_month' => Carbon::now()->translatedFormat('F Y'),
         ];
 
         $recent_orders = Order::with('user')->latest()->take(5)->get();
