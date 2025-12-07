@@ -8,7 +8,7 @@
             <div class="absolute inset-0 bg-black opacity-10"></div>
             <div class="relative z-10">
                 <h1 class="text-4xl font-bold mb-2 animate-fade-in">Dashboard Admin</h1>
-                <p class="text-orange-100 text-lg">Selamat datang di panel administrasi N-Kitchen Pempek</p>
+                <p class="text-orange-100 text-lg">Selamat datang di panel administrasi N-Kitchen</p>
             </div>
             <div class="absolute -top-4 -right-4 w-32 h-32 bg-white opacity-10 rounded-full animate-pulse"></div>
             <div class="absolute -bottom-8 -left-8 w-40 h-40 bg-white opacity-5 rounded-full animate-bounce"></div>

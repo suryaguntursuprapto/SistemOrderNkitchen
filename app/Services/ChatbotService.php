@@ -70,7 +70,7 @@ class ChatbotService
         
         // Greeting
         if (preg_match('/(halo|hai|hi|hello|selamat)/i', $userMessage)) {
-            $message = "👋 Halo! Selamat datang di N-Kitchen Pempek!\n\n";
+            $message = "👋 Halo! Selamat datang di N-Kitchen!\n\n";
             $message .= "Saya adalah asisten virtual yang siap membantu. Silakan tanyakan tentang:\n";
             $message .= "• Menu & Harga\n";
             $message .= "• Status Pesanan\n";

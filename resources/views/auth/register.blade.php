@@ -5,11 +5,7 @@
     <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-lg">
         
         <div>
-            <div class="mx-auto h-20 w-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center shadow-md">
-                <svg class="h-10 w-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
-                </svg>
-            </div>
+            <img src="{{ asset('images/logo.png') }}" alt="N-Kitchen" class="mx-auto h-20 w-20 rounded-xl shadow-md object-cover">
             <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
                 Buat Akun Baru
             </h2>
@@ -42,55 +38,22 @@
         <form class="mt-8 space-y-5" action="{{ route('register') }}" method="POST">
             @csrf
             
-            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <div>
-                    <label for="name" class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
-                    <input id="name" name="name" type="text" required 
-                           class="mt-1 appearance-none block w-full px-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm @error('name') border-red-500 @enderror" 
-                           value="{{ old('name') }}">
-                    @error('name')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                    <input id="username" name="username" type="text" required 
-                           class="mt-1 appearance-none block w-full px-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm @error('username') border-red-500 @enderror" 
-                           value="{{ old('username') }}">
-                    @error('username')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                    <input id="email" name="email" type="email" required 
-                           class="mt-1 appearance-none block w-full px-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm @error('email') border-red-500 @enderror" 
-                           value="{{ old('email') }}">
-                    @error('email')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="phone" class="block text-sm font-medium text-gray-700">Nomor Telepon</label>
-                    <input id="phone" name="phone" type="text" 
-                           class="mt-1 appearance-none block w-full px-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm @error('phone') border-red-500 @enderror" 
-                           value="{{ old('phone') }}">
-                    @error('phone')
-                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
+            <div>
+                <label for="name" class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
+                <input id="name" name="name" type="text" required 
+                       class="mt-1 appearance-none block w-full px-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm @error('name') border-red-500 @enderror" 
+                       value="{{ old('name') }}" placeholder="Masukkan nama lengkap">
+                @error('name')
+                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                @enderror
             </div>
 
             <div>
-                <label for="address" class="block text-sm font-medium text-gray-700">Alamat Lengkap</label>
-                <textarea id="address" name="address" rows="2"
-                          class="mt-1 appearance-none block w-full px-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm @error('address') border-red-500 @enderror">{{ old('address') }}</textarea>
-                @error('address')
+                <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                <input id="email" name="email" type="email" required 
+                       class="mt-1 appearance-none block w-full px-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm @error('email') border-red-500 @enderror" 
+                       value="{{ old('email') }}" placeholder="contoh@email.com">
+                @error('email')
                     <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                 @enderror
             </div>
@@ -99,7 +62,8 @@
                 <div>
                     <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
                     <input id="password" name="password" type="password" required 
-                           class="mt-1 appearance-none block w-full px-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm @error('password') border-red-500 @enderror">
+                           class="mt-1 appearance-none block w-full px-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm @error('password') border-red-500 @enderror"
+                           placeholder="Min. 8 karakter">
                     @error('password')
                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                     @enderror
@@ -108,7 +72,8 @@
                 <div>
                     <label for="password_confirmation" class="block text-sm font-medium text-gray-700">Konfirmasi</label>
                     <input id="password_confirmation" name="password_confirmation" type="password" required 
-                           class="mt-1 appearance-none block w-full px-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+                           class="mt-1 appearance-none block w-full px-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
+                           placeholder="Ulangi password">
                 </div>
             </div>
 

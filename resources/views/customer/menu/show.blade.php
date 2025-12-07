@@ -285,7 +285,7 @@
     <div class="mt-16 mb-12">
         <div class="text-center mb-8">
             <h2 class="text-3xl font-bold text-gray-900 mb-4">Menu Lainnya</h2>
-            <p class="text-gray-600 text-lg">Jelajahi menu lezat lainnya dari N-Kitchen Pempek</p>
+            <p class="text-gray-600 text-lg">Jelajahi menu lezat lainnya dari N-Kitchen</p>
         </div>
         
         <div class="text-center">

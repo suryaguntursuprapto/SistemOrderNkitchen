@@ -23,15 +23,13 @@
     <!-- Shipping Label -->
     <div class="bg-white shadow-xl rounded-2xl overflow-hidden border-2 border-gray-200" id="shipping-label">
         <!-- Header with Logo -->
-        <div class="p-4 print-gradient-header" style="background: linear-gradient(to right, #f97316, #ef4444);">
+        <div class="p-4 print-gradient-header" style="background: linear-gradient(to right, #0d9488, #0891b2);">
             <div class="flex justify-between items-center">
                 <div class="flex items-center space-x-3">
-                    <div class="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-md">
-                        <span class="text-2xl font-bold text-orange-500">N</span>
-                    </div>
+                    <img src="{{ asset('images/logo.png') }}" alt="N-Kitchen" class="w-12 h-12 rounded-lg shadow-md object-cover">
                     <div class="text-white">
-                        <h1 class="text-xl font-bold">N-Kitchen Pempek</h1>
-                        <p class="text-orange-100 text-sm">Cita Rasa Palembang</p>
+                        <h1 class="text-xl font-bold">N-Kitchen</h1>
+                        <p class="text-teal-100 text-sm">Cita Rasa Authentic</p>
                     </div>
                 </div>
                 <div class="text-right text-white">
@@ -74,12 +72,12 @@
                     <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Pengirim</h3>
                 </div>
                 <div class="space-y-2">
-                    <p class="text-lg font-bold text-gray-900">N-Kitchen Pempek</p>
+                    <p class="text-lg font-bold text-gray-900">N-Kitchen</p>
                     <p class="text-gray-700">
-                        Jl. Contoh Alamat Toko No. 123<br>
-                        Kelurahan Contoh, Kecamatan Contoh<br>
-                        Kota Palembang, Sumatera Selatan<br>
-                        30111
+                        Cluster Primrose, Jalan Galuh Mas, Puseurjaya,<br>
+                        Telukjambe Timur Blok C16, Telukjambe Timur,<br>
+                        Kab. Karawang, Jawa Barat<br>
+                        41361
                     </p>
                     <div class="flex items-center space-x-2 text-gray-600">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -217,8 +215,8 @@
         
         /* Enforce background colors for print */
         .print-gradient-header {
-            background-color: #f97316 !important; /* Solid orange fallback */
-            background-image: linear-gradient(to right, #f97316, #ef4444) !important;
+            background-color: #0d9488 !important; /* Solid teal fallback */
+            background-image: linear-gradient(to right, #0d9488, #0891b2) !important;
             color: white !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;

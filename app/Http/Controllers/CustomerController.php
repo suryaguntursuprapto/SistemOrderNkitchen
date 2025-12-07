@@ -9,6 +9,7 @@ use App\Models\OrderItem;
 use App\Models\Message;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
+use App\Models\Category;
 use App\Services\MidtransService;
 use App\Services\AccountingService; 
 use Illuminate\Http\Request;
@@ -229,10 +230,19 @@ class CustomerController extends Controller
         return view('customer.dashboard', compact('stats', 'recent_orders'));
     }
 
-    public function menuIndex()
+    public function menuIndex(Request $request)
     {
-        $menus = Menu::available()->paginate(12);
-        return view('customer.menu.index', compact('menus'));
+        $query = Menu::available();
+        
+        // Filter by category if provided
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->category);
+        }
+        
+        $menus = $query->paginate(12);
+        $categories = Category::active()->ordered()->get();
+        
+        return view('customer.menu.index', compact('menus', 'categories'));
     }
 
     public function menuShow(Menu $menu)

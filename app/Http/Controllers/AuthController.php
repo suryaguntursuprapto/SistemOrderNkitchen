@@ -23,7 +23,7 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'username' => ['required', 'string'],
+            'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
         ]);
 
@@ -41,7 +41,7 @@ class AuthController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'username' => 'Username atau password salah.',
+            'email' => 'Email atau password salah.',
         ]);
     }
 
@@ -56,21 +56,28 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:255', 'unique:users'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'phone' => ['nullable', 'string', 'max:20'],
-            'address' => ['nullable', 'string'],
         ]);
+
+        // Generate username dari email (bagian sebelum @)
+        $emailParts = explode('@', $validated['email']);
+        $baseUsername = $emailParts[0];
+        $username = $baseUsername;
+        $counter = 1;
+        
+        // Pastikan username unik
+        while (User::where('username', $username)->exists()) {
+            $username = $baseUsername . $counter;
+            $counter++;
+        }
 
         $user = User::create([
             'name' => $validated['name'],
-            'username' => $validated['username'],
+            'username' => $username,
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => 'customer',
-            'phone' => $validated['phone'],
-            'address' => $validated['address'],
         ]);
 
         // 🚀 PENTING: Kirim email verifikasi

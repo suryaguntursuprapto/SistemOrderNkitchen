@@ -57,10 +57,19 @@ class AdminController extends Controller
     }
 
     // Menu Management
-    public function menuIndex()
+    public function menuIndex(Request $request)
     {
-        $menus = Menu::latest()->paginate(10);
-        return view('admin.menu.index', compact('menus'));
+        $query = Menu::latest();
+        
+        // Filter by category if provided
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->category);
+        }
+        
+        $menus = $query->paginate(10);
+        $categories = Category::active()->ordered()->get();
+        
+        return view('admin.menu.index', compact('menus', 'categories'));
     }
 
     public function menuCreate()

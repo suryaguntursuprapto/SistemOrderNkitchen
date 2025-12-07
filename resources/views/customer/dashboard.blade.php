@@ -8,7 +8,7 @@
             <div class="absolute inset-0 bg-black opacity-10"></div>
             <div class="relative z-10">
                 <h1 class="text-4xl font-bold mb-2 animate-slide-in">Selamat Datang, {{ auth()->user()->name }}!</h1>
-                <p class="text-teal-100 text-lg">Nikmati kelezatan Pempek N-Kitchen dengan layanan terbaik</p>
+                <p class="text-teal-100 text-lg">Nikmati kelezatan makanan N-Kitchen dengan layanan terbaik</p>
                 <div class="mt-6 flex flex-wrap gap-4">
                     <a href="{{ route('customer.menu.index') }}" 
                        class="bg-white bg-opacity-20 text-black px-6 py-3 rounded-xl font-semibold backdrop-blur-sm hover:bg-opacity-30 transform hover:scale-105 transition-all duration-300 flex items-center space-x-2">
@@ -201,7 +201,7 @@
                         </svg>
                     </div>
                     <h3 class="text-lg font-medium text-gray-900 mb-2">Belum ada pesanan</h3>
-                    <p class="text-gray-500 mb-6">Yuk, mulai pesan makanan lezat dari N-Kitchen Pempek!</p>
+                    <p class="text-gray-500 mb-6">Yuk, mulai pesan makanan lezat dari N-Kitchen!</p>
                     <a href="{{ route('customer.menu.index') }}" 
                        class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-teal-500 to-blue-500 text-black font-semibold rounded-xl hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl space-x-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

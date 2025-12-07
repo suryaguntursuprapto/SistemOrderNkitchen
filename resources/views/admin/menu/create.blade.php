@@ -8,7 +8,7 @@
             <div class="relative z-10 flex items-center justify-between">
                 <div>
                     <h1 class="text-4xl font-bold mb-2 animate-fade-in">Tambah Menu Baru</h1>
-                    <p class="text-purple-100 text-lg">Buat menu makanan baru untuk N-Kitchen Pempek</p>
+                    <p class="text-purple-100 text-lg">Buat menu makanan baru untuk N-Kitchen</p>
                 </div>
                 <a href="{{ route('admin.menu.index') }}" 
                    class="bg-white bg-opacity-20 text-white px-6 py-3 rounded-xl font-semibold backdrop-blur-sm hover:bg-opacity-30 transform hover:scale-105 transition-all duration-300 flex items-center space-x-2">

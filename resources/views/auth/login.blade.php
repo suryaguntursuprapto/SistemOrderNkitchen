@@ -4,13 +4,9 @@
 <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-lg">
         <div>
-            <div class="mx-auto h-20 w-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center shadow-md">
-                <svg class="h-10 w-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                </svg>
-            </div>
+            <img src="{{ asset('images/logo.png') }}" alt="N-Kitchen" class="mx-auto h-20 w-20 rounded-full shadow-md object-cover">
             <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                N-Kitchen Pempek
+                N-Kitchen
             </h2>
             <p class="mt-2 text-center text-sm text-gray-600">
                 Masuk untuk mulai memesan
@@ -27,10 +23,10 @@
             @csrf
             <div class="rounded-md shadow-sm -space-y-px">
                 <div>
-                    <label for="username" class="sr-only">Username</label>
-                    <input id="username" name="username" type="text" required 
-                           class="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-xl focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm @error('username') border-red-500 @enderror" 
-                           placeholder="Username" value="{{ old('username') }}">
+                    <label for="email" class="sr-only">Email</label>
+                    <input id="email" name="email" type="email" required 
+                           class="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-xl focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm @error('email') border-red-500 @enderror" 
+                           placeholder="Email" value="{{ old('email') }}">
                 </div>
                 <div>
                     <label for="password" class="sr-only">Password</label>
@@ -42,7 +38,7 @@
 
             @if($errors->any())
                 <div class="text-red-500 text-xs mt-2">
-                    Username atau password salah.
+                    Email atau password salah.
                 </div>
             @endif
 

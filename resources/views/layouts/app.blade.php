@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://code.jquery.com https://cdn.tailwindcss.com https://app.sandbox.midtrans.com https://app.midtrans.com; frame-src 'self' https://app.sandbox.midtrans.com https://app.midtrans.com; object-src 'none';">
     
-    <title>{{ config('app.name', 'N-Kitchen Pempek') }}</title>
+    <title>{{ config('app.name', 'N-Kitchen') }}</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">

@@ -8,10 +8,10 @@
     $subtotalMenu = $totalAmount;
     // TotalWeight dan ItemValue sudah tersedia dari compact() di Controller.
     
-    // Ambil default data pengguna
-    $defaultRecipientName = session('reorder_data.recipient_name', auth()->user()->name ?? '');
-    $defaultAddress = session('reorder_data.delivery_address', auth()->user()->address ?? '');
-    $defaultPhone = session('reorder_data.phone', auth()->user()->phone ?? '');
+    // Kosongkan field agar pelanggan mengisi data baru setiap checkout
+    $defaultRecipientName = old('recipient_name', '');
+    $defaultAddress = old('delivery_address', '');
+    $defaultPhone = old('phone', '');
 @endphp
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-gray-900" x-data="checkoutForm()">

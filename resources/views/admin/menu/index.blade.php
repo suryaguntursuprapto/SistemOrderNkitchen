@@ -9,7 +9,7 @@
             <div class="relative z-10 flex items-center justify-between">
                 <div>
                     <h1 class="text-4xl font-bold mb-2 animate-slide-in-left">Kelola Menu</h1>
-                    <p class="text-green-100 text-lg">Atur dan kelola menu makanan N-Kitchen Pempek</p>
+                    <p class="text-green-100 text-lg">Atur dan kelola menu makanan N-Kitchen</p>
                 </div>
                 <a href="{{ route('admin.menu.create') }}" 
                    class="bg-white text-green-600 px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center space-x-2 group">
@@ -21,6 +21,30 @@
             </div>
             <div class="absolute -top-4 -right-4 w-32 h-32 bg-white opacity-10 rounded-full animate-pulse"></div>
             <div class="absolute -bottom-8 -left-8 w-40 h-40 bg-white opacity-5 rounded-full animate-bounce"></div>
+        </div>
+    </div>
+
+    <!-- Category Filter -->
+    <div class="mb-6">
+        <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
+            <div class="flex flex-wrap items-center gap-3">
+                <span class="text-sm font-semibold text-gray-600 flex items-center">
+                    <svg class="w-5 h-5 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                    </svg>
+                    Filter:
+                </span>
+                <a href="{{ route('admin.menu.index') }}" 
+                   class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ !request('category') ? 'bg-orange-500 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-orange-100 hover:text-orange-600' }}">
+                    Semua
+                </a>
+                @foreach($categories as $category)
+                    <a href="{{ route('admin.menu.index', ['category' => $category->id]) }}" 
+                       class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {{ request('category') == $category->id ? 'bg-orange-500 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-orange-100 hover:text-orange-600' }}">
+                        {{ $category->name }}
+                    </a>
+                @endforeach
+            </div>
         </div>
     </div>
 

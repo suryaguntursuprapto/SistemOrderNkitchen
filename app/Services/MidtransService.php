@@ -29,21 +29,62 @@ class MidtransService
         $base_url = "https://wapisender.id/api/v5/message/text";
         
         $orderAmount = number_format($order->total_amount, 0, ',', '.');
+        $shippingCost = number_format($order->shipping_cost ?? 0, 0, ',', '.');
         $statusText = strtoupper($status);
         $courierName = strtoupper($order->courier ?? 'N/A');
         $shippingService = $order->shipping_service ?? 'Reguler';
         
+        // Build full address with district, city, province, postal code
+        $fullAddress = $order->delivery_address;
+        $addressParts = [];
+        if ($order->destination_district) {
+            $addressParts[] = $order->destination_district;
+        }
+        if ($order->destination_city) {
+            $addressParts[] = $order->destination_city;
+        }
+        if ($order->destination_province) {
+            $addressParts[] = $order->destination_province;
+        }
+        if ($order->destination_postal_code) {
+            $addressParts[] = $order->destination_postal_code;
+        }
+        $destinationDetails = implode(', ', $addressParts);
+        
+        // Build order items list
+        $itemsList = "";
+        $itemNumber = 1;
+        foreach ($order->orderItems as $item) {
+            $itemPrice = number_format($item->price * $item->quantity, 0, ',', '.');
+            $itemsList .= "   {$itemNumber}. {$item->menu->name} x{$item->quantity} - Rp {$itemPrice}\n";
+            $itemNumber++;
+        }
+        
+        // Calculate subtotal (total - shipping)
+        $subtotal = $order->total_amount - ($order->shipping_cost ?? 0);
+        $subtotalFormatted = number_format($subtotal, 0, ',', '.');
+        
         $message = "🔔 *NOTIFIKASI PESANAN BARU* 🔔\n";
         $message .= "Status: *{$statusText}*\n";
         $message .= "━━━━━━━━━━━━━━━━━━━━━\n\n";
-        $message .= "📦 No. Order: *{$order->order_number}*\n";
-        $message .= "👤 Pelanggan: {$order->user->name}\n";
-        $message .= "📞 Telepon: {$order->phone}\n";
-        $message .= "💰 Total: *Rp {$orderAmount}*\n\n";
-        $message .= "📍 Alamat Pengiriman:\n{$order->delivery_address}\n\n";
-        $message .= "🚚 Kurir: *{$courierName}* ({$shippingService})\n\n";
-        $message .= "━━━━━━━━━━━━━━━━━━━━━\n";
-        $message .= "Mohon segera cek dashboard admin untuk proses lebih lanjut.";
+        $message .= "📦 *No. Order:* {$order->order_number}\n";
+        $message .= "📅 *Tanggal:* " . $order->created_at->format('d M Y, H:i') . " WIB\n\n";
+        $message .= "👤 *Penerima:* {$order->recipient_name}\n";
+        $message .= "📞 *Telepon:* {$order->phone}\n\n";
+        $message .= "📍 *Alamat Pengiriman:*\n{$fullAddress}\n";
+        if ($destinationDetails) {
+            $message .= "📌 *Tujuan:* {$destinationDetails}\n";
+        }
+        $message .= "\n🚚 *Kurir:* {$courierName} ({$shippingService})\n";
+        $message .= "━━━━━━━━━━━━━━━━━━━━━\n\n";
+        $message .= "🛒 *DAFTAR PESANAN:*\n";
+        $message .= $itemsList;
+        $message .= "\n━━━━━━━━━━━━━━━━━━━━━\n";
+        $message .= "💵 Subtotal Menu: Rp {$subtotalFormatted}\n";
+        $message .= "🚛 Ongkos Kirim: Rp {$shippingCost}\n";
+        $message .= "💰 *TOTAL BAYAR: Rp {$orderAmount}*\n";
+        $message .= "━━━━━━━━━━━━━━━━━━━━━\n\n";
+        $message .= "✅ Mohon segera cek dashboard admin untuk proses lebih lanjut.";
 
         try {
             $response = Http::post($base_url, [

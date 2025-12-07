@@ -7,9 +7,9 @@
         <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 p-8 text-white shadow-2xl">
             <div class="absolute inset-0 bg-black opacity-10"></div>
             <div class="relative z-10 text-center">
-                <h1 class="text-5xl font-bold mb-4 animate-fade-in-up">Menu Pempek N-Kitchen</h1>
+                <h1 class="text-5xl font-bold mb-4 animate-fade-in-up">Menu N-Kitchen</h1>
                 <p class="text-xl text-amber-100 max-w-2xl mx-auto leading-relaxed">
-                    Nikmati kelezatan pempek authentic Palembang dengan cita rasa yang tak terlupakan
+                    Nikmati kelezatan menu Nkitchen yang authentic dengan cita rasa yang tak terlupakan
                 </p>
                 <div class="mt-6 flex items-center justify-center space-x-4">
                     <div class="flex items-center text-amber-100">
@@ -40,7 +40,7 @@
     </div>
 
     <!-- Category Filter -->
-    <!-- <div class="mb-8">
+    <div class="mb-8">
         <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
             <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
                 <svg class="w-6 h-6 text-orange-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -49,27 +49,19 @@
                 Kategori Menu
             </h3>
             <div class="flex flex-wrap gap-3">
-                <button class="filter-btn active px-6 py-3 rounded-full font-semibold transition-all duration-300 bg-orange-500 text-white shadow-lg hover:shadow-xl transform hover:scale-105" data-category="all">
+                <a href="{{ route('customer.menu.index') }}" 
+                   class="px-6 py-3 rounded-full font-semibold transition-all duration-300 transform hover:scale-105 {{ !request('category') ? 'bg-orange-500 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-orange-100 hover:text-orange-700' }}">
                     Semua Menu
-                </button>
-                <button class="filter-btn px-6 py-3 rounded-full font-semibold transition-all duration-300 bg-gray-100 text-gray-700 hover:bg-orange-100 hover:text-orange-700 transform hover:scale-105" data-category="pempek">
-                    Pempek
-                </button>
-                <button class="filter-btn px-6 py-3 rounded-full font-semibold transition-all duration-300 bg-gray-100 text-gray-700 hover:bg-orange-100 hover:text-orange-700 transform hover:scale-105" data-category="tekwan">
-                    Tekwan
-                </button>
-                <button class="filter-btn px-6 py-3 rounded-full font-semibold transition-all duration-300 bg-gray-100 text-gray-700 hover:bg-orange-100 hover:text-orange-700 transform hover:scale-105" data-category="model">
-                    Model
-                </button>
-                <button class="filter-btn px-6 py-3 rounded-full font-semibold transition-all duration-300 bg-gray-100 text-gray-700 hover:bg-orange-100 hover:text-orange-700 transform hover:scale-105" data-category="minuman">
-                    Minuman
-                </button>
-                <button class="filter-btn px-6 py-3 rounded-full font-semibold transition-all duration-300 bg-gray-100 text-gray-700 hover:bg-orange-100 hover:text-orange-700 transform hover:scale-105" data-category="lainnya">
-                    Lainnya
-                </button>
+                </a>
+                @foreach($categories as $category)
+                    <a href="{{ route('customer.menu.index', ['category' => $category->id]) }}" 
+                       class="px-6 py-3 rounded-full font-semibold transition-all duration-300 transform hover:scale-105 {{ request('category') == $category->id ? 'bg-orange-500 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-orange-100 hover:text-orange-700' }}">
+                        {{ $category->name }}
+                    </a>
+                @endforeach
             </div>
         </div>
-    </div> -->
+    </div>
 
     <!-- Menu Grid -->
     @if($menus->count() > 0)
@@ -197,7 +189,8 @@
                 </p>
                 <div class="mt-8">
                     <a href="{{ route('customer.dashboard') }}" 
-                       class="inline-flex items-center px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-2xl hover:from-orange-600 hover:to-red-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl space-x-3">
+                       style="background: linear-gradient(to right, #f97316, #ef4444);"
+                       class="inline-flex items-center px-8 py-4 text-white font-bold rounded-2xl transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl space-x-3">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                         </svg>
@@ -211,9 +204,9 @@
     <!-- Features Section -->
     <div class="mt-16 bg-gradient-to-r from-gray-50 to-gray-100 rounded-3xl p-8">
         <div class="text-center mb-8">
-            <h2 class="text-3xl font-bold text-gray-900 mb-4">Mengapa Memilih N-Kitchen Pempek?</h2>
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">Mengapa Memilih N-Kitchen?</h2>
             <p class="text-gray-600 text-lg max-w-2xl mx-auto">
-                Kami berkomitmen memberikan pengalaman kuliner pempek terbaik dengan kualitas dan pelayanan premium
+                Kami berkomitmen memberikan pengalaman kuliner terbaik dengan kualitas dan pelayanan premium
             </p>
         </div>
         
@@ -245,7 +238,7 @@
                     </svg>
                 </div>
                 <h3 class="text-xl font-bold text-gray-900 mb-2">Rasa Otentik</h3>
-                <p class="text-gray-600">Cita rasa asli Palembang yang telah diwariskan turun temurun</p>
+                <p class="text-gray-600">Cita rasa yang authentic yang telah diwariskan turun temurun</p>
             </div>
         </div>
     </div>
