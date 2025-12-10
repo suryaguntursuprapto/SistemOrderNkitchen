@@ -231,4 +231,49 @@ class MidtransService
             throw new \Exception('Midtrans Error: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Refund a transaction via Midtrans API
+     * 
+     * @param string $orderId Midtrans order ID
+     * @param float $amount Amount to refund
+     * @param string $reason Reason for refund
+     * @return array|null Refund response
+     */
+    public function refundTransaction($orderId, $amount, $reason = 'Order not processed within 24 hours')
+    {
+        try {
+            $serverKey = config('services.midtrans.server_key');
+            $isProduction = config('services.midtrans.is_production', false);
+            
+            $baseUrl = $isProduction 
+                ? 'https://api.midtrans.com' 
+                : 'https://api.sandbox.midtrans.com';
+            
+            $response = Http::withBasicAuth($serverKey, '')
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ])
+                ->post("{$baseUrl}/v2/{$orderId}/refund", [
+                    'refund_key' => 'refund-' . $orderId . '-' . time(),
+                    'amount' => (int) $amount,
+                    'reason' => $reason,
+                ]);
+            
+            if ($response->successful()) {
+                Log::info("Midtrans refund successful for order {$orderId}", $response->json());
+                return $response->json();
+            } else {
+                Log::error("Midtrans refund failed for order {$orderId}", [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+                return null;
+            }
+        } catch (\Exception $e) {
+            Log::error("Midtrans refund error for order {$orderId}: " . $e->getMessage());
+            throw new \Exception('Midtrans Refund Error: ' . $e->getMessage());
+        }
+    }
 }

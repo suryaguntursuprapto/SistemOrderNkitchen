@@ -115,18 +115,21 @@
 
         <!-- Input Area -->
         <div class="p-4 bg-white border-t border-gray-200">
-            <form @submit.prevent="sendMessage()" class="flex items-center space-x-3">
+            <form @submit.prevent="sendMessage()" class="flex items-end space-x-3">
                 <div class="flex-1 relative">
-                    <input type="text" 
-                           x-model="newMessage"
-                           @keydown.enter="sendMessage()"
-                           placeholder="Ketik pesan..." 
-                           class="w-full px-4 py-3 bg-gray-100 text-gray-900 rounded-full focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all placeholder-gray-500"
-                           :disabled="isSending">
+                    <textarea x-model="newMessage"
+                           @keydown.enter.prevent="if (!$event.shiftKey) sendMessage()"
+                           placeholder="Ketik pesan... (Shift+Enter untuk baris baru)" 
+                           rows="1"
+                           x-ref="messageInput"
+                           @input="autoResize($event.target)"
+                           class="w-full px-4 py-3 bg-gray-100 text-gray-900 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all placeholder-gray-500 resize-none overflow-hidden"
+                           style="min-height: 48px; max-height: 150px;"
+                           :disabled="isSending"></textarea>
                 </div>
                 <button type="submit" 
                         :disabled="!newMessage.trim() || isSending"
-                        class="w-12 h-12 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 text-white rounded-full flex items-center justify-center transition-colors shadow-md">
+                        class="w-12 h-12 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 text-white rounded-full flex items-center justify-center transition-colors shadow-md flex-shrink-0">
                     <template x-if="!isSending">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
@@ -148,15 +151,32 @@
 function chatApp() {
     return {
         messages: @json($messages),
-        newMessage: '',
+        newMessage: @json($prefillMessage ?? ''),
         isSending: false,
         isTyping: false,
         lastId: {{ $lastMessageId }},
         pollingInterval: null,
+        orderContext: @json($orderContext ?? null),
 
         init() {
             this.scrollToBottom();
             this.startPolling();
+            
+            // Handle prefilled message - auto-resize textarea
+            if (this.newMessage) {
+                this.$nextTick(() => {
+                    const textarea = this.$refs.messageInput;
+                    if (textarea) {
+                        textarea.focus();
+                        this.autoResize(textarea);
+                    }
+                });
+            }
+        },
+
+        autoResize(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 150) + 'px';
         },
 
         scrollToBottom() {

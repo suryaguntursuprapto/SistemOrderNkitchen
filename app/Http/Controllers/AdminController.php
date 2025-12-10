@@ -353,6 +353,113 @@ class AdminController extends Controller
         return redirect()->route('admin.order.index')->with('success', 'Pesanan berhasil dihapus!');
     }
 
+    /**
+     * Process manual refund for an order
+     */
+    public function orderRefund(Request $request, Order $order)
+    {
+        // Validate that order has a payment and is eligible for refund
+        if (!$order->payment) {
+            return back()->with('error', 'Pesanan ini tidak memiliki data pembayaran.');
+        }
+
+        $paymentStatus = $order->payment->status;
+        $eligibleStatuses = ['paid', 'settlement', 'capture', 'confirmed'];
+        
+        if (!in_array($paymentStatus, $eligibleStatuses)) {
+            return back()->with('error', 'Pesanan ini tidak dapat di-refund. Status pembayaran: ' . $paymentStatus);
+        }
+
+        try {
+            $midtransService = app(\App\Services\MidtransService::class);
+            $midtransOrderId = $order->payment->midtrans_order_id ?? "ORDER-{$order->id}";
+            $refundAmount = $order->total_amount;
+
+            // Attempt refund via Midtrans
+            $refundResult = null;
+            try {
+                $refundResult = $midtransService->refundTransaction(
+                    $midtransOrderId,
+                    $refundAmount,
+                    'Refund manual oleh admin'
+                );
+            } catch (\Exception $e) {
+                \Log::warning("Midtrans refund API error for order #{$order->id}: " . $e->getMessage());
+                // Continue anyway - admin can process manual bank transfer
+            }
+
+            // Update order status
+            $order->update([
+                'status' => 'cancelled',
+                'notes' => ($order->notes ? $order->notes . "\n" : '') . 
+                           "[REFUND] Dana dikembalikan oleh admin. " .
+                           "Waktu: " . now()->format('d/m/Y H:i:s') . " WIB. " .
+                           ($refundResult ? "Refund Midtrans berhasil." : "Perlu transfer manual ke customer.")
+            ]);
+
+            // Update payment status
+            $order->payment->update([
+                'status' => 'refunded',
+                'notes' => ($order->payment->notes ? $order->payment->notes . "\n" : '') .
+                           "Refund diproses oleh admin pada " . now()->format('d/m/Y H:i:s')
+            ]);
+
+            // Send notification to customer
+            $this->sendRefundNotificationToCustomer($order);
+
+            $successMessage = $refundResult 
+                ? 'Refund berhasil diproses via Midtrans! Dana akan dikirim ke customer dalam 3-14 hari kerja.'
+                : 'Status refund berhasil diupdate. Silakan transfer manual ke rekening customer.';
+
+            return back()->with('success', $successMessage);
+
+        } catch (\Exception $e) {
+            \Log::error("Refund error for order #{$order->id}: " . $e->getMessage());
+            return back()->with('error', 'Gagal memproses refund: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send refund notification to customer
+     */
+    private function sendRefundNotificationToCustomer(Order $order)
+    {
+        try {
+            $phone = $order->phone;
+            if (!$phone) return;
+
+            $phone = preg_replace('/[^0-9]/', '', $phone);
+            if (substr($phone, 0, 1) === '0') {
+                $phone = '62' . substr($phone, 1);
+            }
+
+            $message = "🔄 *Notifikasi Refund - N-Kitchen*\n\n";
+            $message .= "Halo {$order->recipient_name},\n\n";
+            $message .= "Pesanan Anda dengan nomor *#{$order->order_number}* telah kami batalkan dan dana akan dikembalikan.\n\n";
+            $message .= "📋 *Detail:*\n";
+            $message .= "• No. Order: {$order->order_number}\n";
+            $message .= "• Total Refund: Rp " . number_format($order->total_amount, 0, ',', '.') . "\n\n";
+            $message .= "💰 *Pengembalian Dana:*\n";
+            $message .= "Dana akan dikembalikan ke metode pembayaran Anda dalam 3-14 hari kerja.\n\n";
+            $message .= "Terima kasih atas pengertiannya. 🙏";
+
+            $apiKey = config('services.wapisender.api_key');
+            $deviceKey = config('services.wapisender.device_key');
+
+            if ($apiKey && $deviceKey) {
+                \Illuminate\Support\Facades\Http::withHeaders([
+                    'Authorization' => $apiKey,
+                ])->post('https://api.wapisender.id/api/v1/message/send-message', [
+                    'device_key' => $deviceKey,
+                    'destination' => $phone,
+                    'message' => $message,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::warning("Failed to send refund notification: " . $e->getMessage());
+        }
+    }
+
     // ==================== CHAT MANAGEMENT ====================
 
     /**

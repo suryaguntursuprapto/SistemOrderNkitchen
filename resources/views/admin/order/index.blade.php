@@ -422,9 +422,14 @@
                                         <span class="font-medium text-gray-700">Status:</span>
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                             @if($order->payment->status == 'pending') bg-yellow-100 text-yellow-800
-                                            @elseif($order->payment->status == 'confirmed') bg-green-100 text-green-800
+                                            @elseif(in_array($order->payment->status, ['paid', 'confirmed', 'settlement', 'capture'])) bg-green-100 text-green-800
+                                            @elseif($order->payment->status == 'refunded') bg-purple-100 text-purple-800
                                             @else bg-red-100 text-red-800 @endif">
-                                            {{ ucfirst($order->payment->status) }}
+                                            @if($order->payment->status == 'refunded')
+                                                💰 Dikembalikan
+                                            @else
+                                                {{ ucfirst($order->payment->status) }}
+                                            @endif
                                         </span>
                                     </div>
                                     <div>

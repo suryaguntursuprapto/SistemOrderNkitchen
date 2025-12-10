@@ -515,6 +515,12 @@ class CustomerController extends Controller
         try {
             $this->authorize('view', $order);
             
+            // Check if order has expired (1 hour deadline)
+            if ($order->created_at->addHour()->isPast()) {
+                return redirect()->route('customer.order.show', $order)
+                    ->with('error', 'Waktu pembayaran sudah habis. Pesanan ini tidak dapat dibayar lagi. Silakan buat pesanan baru.');
+            }
+            
             \Log::info('=== MIDTRANS PAYMENT PAGE ACCESSED ===', [
                 'order_id' => $order->id,
                 'order_number' => $order->order_number,
@@ -1185,7 +1191,7 @@ class CustomerController extends Controller
     /**
      * Display the chat interface
      */
-    public function chatIndex()
+    public function chatIndex(Request $request)
     {
         $user = auth()->user();
         
@@ -1221,7 +1227,11 @@ class CustomerController extends Controller
         $chatbotService = new \App\Services\ChatbotService();
         $quickReplies = $chatbotService->getQuickReplies();
 
-        return view('customer.chat.index', compact('conversation', 'messages', 'quickReplies', 'lastMessageId'));
+        // Get prefill message from URL (from order inquiry)
+        $prefillMessage = $request->input('prefill', '');
+        $orderContext = $request->input('order_id', null);
+
+        return view('customer.chat.index', compact('conversation', 'messages', 'quickReplies', 'lastMessageId', 'prefillMessage', 'orderContext'));
     }
 
     /**
@@ -1230,7 +1240,8 @@ class CustomerController extends Controller
     public function chatSend(Request $request)
     {
         $validated = $request->validate([
-            'message' => 'required|string|max:1000',
+            'message' => 'required|string|max:2000',
+            'skip_bot' => 'nullable|boolean', // Skip chatbot for order inquiries
         ]);
 
         $user = auth()->user();
@@ -1238,13 +1249,17 @@ class CustomerController extends Controller
         // Get or create conversation
         $conversation = \App\Models\Conversation::getOrCreateForUser($user->id);
         
+        // Detect if this is an order inquiry (contains order pattern)
+        $isOrderInquiry = preg_match('/Order #\d+|Pesanan #\d+|bertanya tentang pesanan/i', $validated['message']);
+        $skipBot = $request->input('skip_bot', false) || $isOrderInquiry;
+        
         // Create user message
         $userMessage = Message::create([
             'user_id' => $user->id,
             'conversation_id' => $conversation->id,
             'sender_type' => Message::SENDER_USER,
             'sender_id' => $user->id,
-            'subject' => 'Chat Pelanggan',
+            'subject' => $isOrderInquiry ? 'Pertanyaan Pesanan' : 'Chat Pelanggan',
             'message' => $validated['message'],
             'message_status' => Message::STATUS_SENT,
             'is_read' => false,
@@ -1256,9 +1271,25 @@ class CustomerController extends Controller
             'has_unread_admin' => true,
         ]);
 
-        // Process chatbot response
-        $chatbotService = new \App\Services\ChatbotService();
-        $botMessage = $chatbotService->processMessage($validated['message'], $conversation);
+        $botMessage = null;
+
+        // Only process chatbot if NOT an order inquiry
+        if (!$skipBot) {
+            $chatbotService = new \App\Services\ChatbotService();
+            $botMessage = $chatbotService->processMessage($validated['message'], $conversation);
+        } else {
+            // Send notification message that admin will respond
+            $botMessage = Message::create([
+                'user_id' => $user->id,
+                'conversation_id' => $conversation->id,
+                'sender_type' => Message::SENDER_CHATBOT,
+                'sender_id' => null,
+                'subject' => 'Auto Reply',
+                'message' => "✅ Pertanyaan Anda tentang pesanan telah diterima!\n\nAdmin kami akan segera membalas pesan Anda. Mohon ditunggu ya 🙏",
+                'message_status' => Message::STATUS_DELIVERED,
+                'is_read' => false,
+            ]);
+        }
 
         return response()->json([
             'status' => 'success',
@@ -1331,8 +1362,27 @@ class CustomerController extends Controller
     // ==================== LEGACY MESSAGE METHODS ====================
     // Keep for backward compatibility
 
-    public function messageIndex()
+    public function messageIndex(Request $request)
     {
+        // Check if coming from order inquiry
+        if ($request->has('order_id')) {
+            $order = Order::with('orderItems.menu')->find($request->order_id);
+            
+            if ($order && $order->user_id === auth()->id()) {
+                // Pre-fill message with order context
+                $orderItems = $order->orderItems->map(fn($item) => $item->menu->name . ' x' . $item->quantity)->implode(', ');
+                $prefillMessage = "Halo Admin, saya ingin bertanya tentang pesanan saya:\n\n" .
+                    "📦 Order #" . ($order->order_number ?? $order->id) . "\n" .
+                    "📅 Tanggal: " . $order->created_at->format('d/m/Y H:i') . "\n" .
+                    "🍽️ Item: " . $orderItems . "\n" .
+                    "💰 Total: Rp " . number_format($order->total_amount, 0, ',', '.') . "\n" .
+                    "📊 Status: " . ucfirst($order->status) . "\n\n" .
+                    "Pertanyaan saya: ";
+                
+                return redirect()->route('customer.chat.index', ['prefill' => $prefillMessage, 'order_id' => $order->id]);
+            }
+        }
+        
         return redirect()->route('customer.chat.index');
     }
 

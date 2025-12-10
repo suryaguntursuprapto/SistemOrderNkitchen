@@ -123,6 +123,29 @@
                                             @endif
                                         </span>
                                     @endif
+                                    
+                                    {{-- Payment Countdown for pending orders --}}
+                                    @if($order->status == 'pending')
+                                        @php
+                                            $deadline = $order->created_at->addHour();
+                                            $remaining = now()->diffInSeconds($deadline, false);
+                                        @endphp
+                                        <div class="flex items-center space-x-1 text-xs" 
+                                             x-data="{ timeLeft: {{ $remaining }}, interval: null }" 
+                                             x-init="interval = setInterval(() => { if(timeLeft > 0) timeLeft--; }, 1000)">
+                                            <svg class="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            <span :class="timeLeft <= 600 ? 'text-red-600 animate-pulse font-bold' : 'text-orange-600 font-medium'">
+                                                <template x-if="timeLeft > 0">
+                                                    <span x-text="Math.floor(timeLeft/60) + ':' + String(timeLeft%60).padStart(2,'0')"></span>
+                                                </template>
+                                                <template x-if="timeLeft <= 0">
+                                                    <span class="text-red-600">Expired</span>
+                                                </template>
+                                            </span>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                             <div class="text-right">
@@ -258,8 +281,20 @@
                         <div class="mt-4 pt-4 border-t border-gray-200">
                             <div class="flex flex-wrap gap-2">
                                 @if($order->status == 'pending' && $order->payment && $order->payment->status == 'pending')
-                                    {{-- ✅ FIX: Add null check for paymentMethod --}}
-                                    @if($order->payment->paymentMethod && $order->payment->paymentMethod->type == 'midtrans')
+                                    @php
+                                        $isExpired = $order->created_at->addHour()->isPast();
+                                    @endphp
+                                    
+                                    @if($isExpired)
+                                        {{-- Order expired - show warning --}}
+                                        <span class="inline-flex items-center px-3 py-2 bg-red-100 text-red-700 text-sm font-medium rounded-lg">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            Waktu Habis
+                                        </span>
+                                    @elseif($order->payment->paymentMethod && $order->payment->paymentMethod->type == 'midtrans')
+                                        {{-- Payment button only if not expired --}}
                                         <a href="{{ route('customer.order.midtrans', $order) }}" 
                                            class="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200">
                                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,7 +303,7 @@
                                             Bayar Sekarang
                                         </a>
                                     @elseif($order->payment && !$order->payment->paymentMethod)
-                                        {{-- ✅ FIX: Handle case when paymentMethod is null --}}
+                                        {{-- Handle case when paymentMethod is null --}}
                                         <span class="inline-flex items-center px-3 py-2 bg-gray-100 text-gray-500 text-sm font-medium rounded-lg">
                                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
