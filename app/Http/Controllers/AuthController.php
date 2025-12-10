@@ -23,8 +23,18 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
+            'email' => [
+                'required', 
+                'string', 
+                'email:rfc,dns', // Validate email format AND check DNS
+                'max:255',
+            ],
+            'password' => ['required', 'string', 'min:1'],
+        ], [
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'email.max' => 'Email maksimal 255 karakter.',
+            'password.required' => 'Password wajib diisi.',
         ]);
 
         // Fitur "Remember Me" (Checkbox)
@@ -55,9 +65,46 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'name' => [
+                'required', 
+                'string', 
+                'min:2',
+                'max:255',
+                'regex:/^[a-zA-Z\s]+$/', // Only letters and spaces
+            ],
+            'email' => [
+                'required', 
+                'string', 
+                'email:rfc,dns', // Validate email format AND check DNS
+                'max:255', 
+                'unique:users,email',
+                'not_regex:/\+/', // Prevent + alias emails (spam prevention)
+            ],
+            'password' => [
+                'required', 
+                'string', 
+                'min:8',
+                'max:128',
+                'confirmed',
+                'regex:/[a-z]/', // Must contain lowercase
+                'regex:/[A-Z]/', // Must contain uppercase
+                'regex:/[0-9]/', // Must contain number
+            ],
+        ], [
+            'name.required' => 'Nama lengkap wajib diisi.',
+            'name.min' => 'Nama minimal 2 karakter.',
+            'name.max' => 'Nama maksimal 255 karakter.',
+            'name.regex' => 'Nama hanya boleh berisi huruf dan spasi.',
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'email.max' => 'Email maksimal 255 karakter.',
+            'email.unique' => 'Email sudah terdaftar.',
+            'email.not_regex' => 'Email tidak boleh menggunakan karakter +.',
+            'password.required' => 'Password wajib diisi.',
+            'password.min' => 'Password minimal 8 karakter.',
+            'password.max' => 'Password maksimal 128 karakter.',
+            'password.confirmed' => 'Konfirmasi password tidak cocok.',
+            'password.regex' => 'Password harus mengandung huruf besar, huruf kecil, dan angka.',
         ]);
 
         // Generate username dari email (bagian sebelum @)

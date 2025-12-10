@@ -64,6 +64,7 @@
                     <input id="password" name="password" type="password" required 
                            class="mt-1 appearance-none block w-full px-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm @error('password') border-red-500 @enderror"
                            placeholder="Min. 8 karakter">
+                    <p class="mt-1 text-xs text-gray-500">Harus mengandung huruf besar, huruf kecil, dan angka</p>
                     @error('password')
                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                     @enderror

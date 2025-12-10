@@ -38,7 +38,9 @@
 
             @if($errors->any())
                 <div class="text-red-500 text-xs mt-2">
-                    Email atau password salah.
+                    @foreach($errors->all() as $error)
+                        <p>{{ $error }}</p>
+                    @endforeach
                 </div>
             @endif
 
