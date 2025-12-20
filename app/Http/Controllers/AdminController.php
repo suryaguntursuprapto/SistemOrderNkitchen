@@ -310,7 +310,7 @@ class AdminController extends Controller
 
     public function orderShow(Order $order)
     {
-        $order->load(['user', 'orderItems.menu']);
+        $order->load(['user', 'orderItems.menu', 'payments']);
         return view('admin.order.show', compact('order'));
     }
 
@@ -318,6 +318,135 @@ class AdminController extends Controller
     {
         $order->load(['user', 'orderItems.menu']);
         return view('admin.order.shipping-label', compact('order'));
+    }
+
+    /**
+     * Get order tracking information from Biteship
+     */
+    public function orderTracking(Order $order)
+    {
+        $biteshipService = app(\App\Services\BiteshipService::class);
+        
+        // Instant couriers (gosend, grab) need order ID not waybill
+        $instantCouriers = ['gosend', 'grab', 'gojek'];
+        $isInstantCourier = in_array(strtolower($order->courier ?? ''), $instantCouriers);
+        
+        // For instant couriers, use biteship_order_id; for others use waybill
+        if ($isInstantCourier) {
+            $trackingId = $order->biteship_order_id;
+            if (empty($trackingId)) {
+                $trackingId = $order->biteship_waybill_id ?? $order->tracking_number;
+            }
+            
+            // If instant courier has no tracking ID, return informative response
+            if (empty($trackingId)) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'status' => 'waiting',
+                        'courier' => strtoupper($order->courier),
+                        'is_instant' => true,
+                        'history' => [
+                            [
+                                'note' => 'Kurir instan ('. strtoupper($order->courier) .') akan menjemput pesanan segera.',
+                                'updated_at' => now()->toIso8601String()
+                            ],
+                            [
+                                'note' => 'Tracking real-time akan tersedia setelah kurir mengambil paket.',
+                                'updated_at' => now()->subMinute()->toIso8601String()
+                            ]
+                        ]
+                    ]
+                ]);
+            }
+        } else {
+            $trackingId = $order->biteship_waybill_id ?? $order->tracking_number;
+        }
+        
+        if (empty($trackingId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nomor resi belum tersedia untuk pesanan ini.'
+            ]);
+        }
+        
+        if (empty($order->courier)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Informasi kurir tidak tersedia.'
+            ]);
+        }
+        
+        // Get tracking from Biteship
+        $tracking = $biteshipService->getTracking($trackingId, $order->courier);
+        
+        if (!$tracking) {
+            // For instant couriers, return a helpful message instead of error
+            if ($isInstantCourier) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'status' => 'processing',
+                        'courier' => strtoupper($order->courier),
+                        'is_instant' => true,
+                        'history' => [
+                            [
+                                'note' => 'Pesanan sedang diproses. Kurir akan segera menjemput.',
+                                'updated_at' => now()->toIso8601String()
+                            ]
+                        ]
+                    ]
+                ]);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak dapat mengambil informasi tracking. Silakan coba lagi nanti.'
+            ]);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'data' => $tracking
+        ]);
+    }
+
+    /**
+     * Manually create Biteship order when items are ready (for PO/Pre-order items)
+     */
+    public function createBiteshipOrder(Order $order)
+    {
+        // Check if order already has Biteship order
+        if ($order->biteship_order_id) {
+            return back()->with('error', 'Order sudah memiliki Biteship Order ID: ' . $order->biteship_order_id);
+        }
+        
+        // Check if payment is confirmed
+        $payment = $order->payments()->first();
+        if (!$payment || $payment->status !== 'confirmed') {
+            return back()->with('error', 'Pembayaran belum dikonfirmasi. Tidak dapat membuat order Biteship.');
+        }
+        
+        // Create Biteship order
+        $biteshipService = app(\App\Services\BiteshipService::class);
+        $result = $biteshipService->createOrder($order);
+        
+        if ($result && isset($result['success']) && $result['success']) {
+            \Log::info('Admin manually created Biteship order', [
+                'order_id' => $order->id,
+                'biteship_order_id' => $order->biteship_order_id
+            ]);
+            
+            return back()->with('success', 'Order Biteship berhasil dibuat! AWB: ' . ($order->biteship_waybill_id ?? 'Menunggu...'));
+        }
+        
+        $errorMessage = $result['error'] ?? 'Gagal membuat order Biteship';
+        \Log::warning('Admin failed to create Biteship order', [
+            'order_id' => $order->id,
+            'error' => $errorMessage
+        ]);
+        
+        return back()->with('error', 'Gagal membuat order Biteship: ' . $errorMessage);
     }
 
     public function orderUpdate(Request $request, Order $order)

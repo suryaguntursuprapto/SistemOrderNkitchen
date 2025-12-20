@@ -365,24 +365,183 @@
                             </div>
                         </div>
                         
-                        {{-- Tracking Number --}}
-                        @if($order->tracking_number)
-                            <div class="mt-6 p-5 bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl border border-emerald-200 hover:shadow-lg transition-shadow">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-xs text-emerald-600 uppercase tracking-wider font-bold flex items-center gap-2">
-                                            <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                                            Nomor Resi
-                                        </p>
-                                        <p class="font-mono font-bold text-emerald-700 text-xl mt-1">{{ $order->tracking_number }}</p>
+                        
+                        {{-- Tracking Section - Shows for all orders except cancelled --}}
+                        @if($order->status !== 'cancelled')
+                            @php
+                                $hasTrackingInfo = $order->tracking_number || $order->biteship_waybill_id;
+                                $isInstantCourier = in_array(strtolower($order->courier ?? ''), ['gosend', 'grab', 'gojek']);
+                                $hasOrderId = !empty($order->biteship_order_id);
+                                // Show tracking button for:
+                                // 1. Regular couriers with waybill
+                                // 2. Instant couriers with order ID
+                                // 3. All instant couriers (to show status even without order ID)
+                                $showTrackingButton = $hasTrackingInfo || $isInstantCourier || $hasOrderId;
+                            @endphp
+                            <div class="mt-6 p-5 bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl border border-emerald-200 hover:shadow-lg transition-shadow"
+                                 x-data="trackingComponent()">
+                                
+                                @if($showTrackingButton)
+                                    {{-- Ada Resi atau GoSend Order ID --}}
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div>
+                                            @if($isInstantCourier)
+                                                <p class="text-xs text-emerald-600 uppercase tracking-wider font-bold flex items-center gap-2">
+                                                    <span class="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
+                                                    Kurir Instan ({{ strtoupper($order->courier) }})
+                                                </p>
+                                                @if($order->biteship_waybill_id || $order->tracking_number)
+                                                    <p class="font-mono font-bold text-emerald-700 text-xl mt-1">{{ $order->biteship_waybill_id ?? $order->tracking_number }}</p>
+                                                @else
+                                                    <p class="font-mono font-bold text-orange-600 text-lg mt-1">Order: {{ Str::limit($order->biteship_order_id, 15) }}</p>
+                                                @endif
+                                            @else
+                                                <p class="text-xs text-emerald-600 uppercase tracking-wider font-bold flex items-center gap-2">
+                                                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                                                    Nomor Resi
+                                                </p>
+                                                <p class="font-mono font-bold text-emerald-700 text-xl mt-1">{{ $order->biteship_waybill_id ?? $order->tracking_number }}</p>
+                                            @endif
+                                        </div>
+                                        @if($order->biteship_waybill_id || $order->tracking_number)
+                                            <button onclick="copyTrackingNumber('{{ $order->biteship_waybill_id ?? $order->tracking_number }}')"
+                                                    class="p-3 bg-white hover:bg-emerald-100 rounded-xl transition-all hover:scale-110 shadow-md hover:shadow-lg border border-emerald-200">
+                                                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                                </svg>
+                                            </button>
+                                        @endif
                                     </div>
-                                    <button onclick="copyTrackingNumber('{{ $order->tracking_number }}')"
-                                            class="p-3 bg-white hover:bg-emerald-100 rounded-xl transition-all hover:scale-110 shadow-md hover:shadow-lg border border-emerald-200">
-                                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                    
+                                    <!-- Tombol Lacak Pengiriman -->
+                                    <button x-on:click="loadTracking()" 
+                                            x-bind:disabled="loading"
+                                            class="w-full mt-2 px-4 py-3 text-white font-bold rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                            style="background: linear-gradient(to right, {{ $isInstantCourier ? '#f97316, #ea580c' : '#10b981, #059669' }});">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
                                         </svg>
+                                        <span>{{ $isInstantCourier ? '📍 Lacak Kurir Instan' : '🚚 Lacak Pengiriman' }}</span>
                                     </button>
-                                </div>
+                                @else
+                                    {{-- Belum Ada Resi --}}
+                                    <div class="text-center py-2">
+                                        <div class="flex items-center justify-center gap-2 mb-2">
+                                            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path>
+                                            </svg>
+                                            <p class="text-sm font-semibold text-emerald-700">Lacak Pengiriman</p>
+                                        </div>
+                                        <p class="text-sm text-gray-600">
+                                            @if($order->status === 'pending')
+                                                Menunggu pembayaran. Nomor resi akan tersedia setelah pembayaran dikonfirmasi dan pesanan dikirim.
+                                            @elseif(in_array($order->status, ['confirmed', 'processing', 'preparing']))
+                                                Pesanan sedang diproses. Nomor resi akan tersedia setelah pesanan dikirim.
+                                            @else
+                                                Nomor resi belum tersedia. Hubungi customer service jika perlu bantuan.
+                                            @endif
+                                        </p>
+                                    </div>
+                                @endif
+                                
+                                <!-- Tracking Modal -->
+                                <template x-teleport="body">
+                                    <div x-show="showModal" 
+                                         x-transition:enter="transition ease-out duration-300"
+                                         x-transition:enter-start="opacity-0"
+                                         x-transition:enter-end="opacity-100"
+                                         x-transition:leave="transition ease-in duration-200"
+                                         x-transition:leave-start="opacity-100"
+                                         x-transition:leave-end="opacity-0"
+                                         class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+                                         style="background: rgba(0,0,0,0.5);"
+                                         @click.self="showModal = false"
+                                         @keydown.escape.window="showModal = false">
+                                        <div x-show="showModal"
+                                             x-transition:enter="transition ease-out duration-300"
+                                             x-transition:enter-start="opacity-0 scale-90"
+                                             x-transition:enter-end="opacity-100 scale-100"
+                                             x-transition:leave="transition ease-in duration-200"
+                                             x-transition:leave-start="opacity-100 scale-100"
+                                             x-transition:leave-end="opacity-0 scale-90"
+                                             class="bg-white rounded-3xl shadow-2xl max-w-lg w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col">
+                                            
+                                            <!-- Modal Header -->
+                                            <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-emerald-50 to-green-50 flex items-center justify-between">
+                                                <div>
+                                                    <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                                        🚚 Lacak Pengiriman
+                                                    </h3>
+                                                    <p class="text-sm text-gray-600" x-text="'Resi: ' + waybillId"></p>
+                                                </div>
+                                                <button @click="showModal = false" class="p-2 hover:bg-white rounded-lg transition-colors">
+                                                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                            
+                                            <!-- Modal Content -->
+                                            <div class="p-6 overflow-y-auto flex-1">
+                                                <!-- Error State -->
+                                                <template x-if="error">
+                                                    <div class="text-center py-8">
+                                                        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                            <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                            </svg>
+                                                        </div>
+                                                        <p class="text-gray-600" x-text="error"></p>
+                                                    </div>
+                                                </template>
+                                                
+                                                <!-- Tracking Timeline -->
+                                                <template x-if="trackingData && !error">
+                                                    <div>
+                                                        <!-- Current Status -->
+                                                        <div class="mb-6 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+                                                            <p class="text-xs text-emerald-600 uppercase font-bold mb-1">Status Terkini</p>
+                                                            <p class="text-lg font-bold text-emerald-700" x-text="formatStatus(trackingData.status)"></p>
+                                                        </div>
+                                                        
+                                                        <!-- Timeline -->
+                                                        <div class="space-y-4">
+                                                            <template x-for="(item, index) in trackingData.history" :key="index">
+                                                                <div class="flex gap-4">
+                                                                    <div class="flex flex-col items-center">
+                                                                        <div :class="index === 0 ? 'bg-emerald-500' : 'bg-gray-300'" 
+                                                                             class="w-3 h-3 rounded-full"></div>
+                                                                        <div x-show="index < trackingData.history.length - 1" 
+                                                                             class="w-0.5 h-full bg-gray-200 flex-1"></div>
+                                                                    </div>
+                                                                    <div class="flex-1 pb-4">
+                                                                        <p class="font-semibold text-gray-900 text-sm" x-text="item.note"></p>
+                                                                        <p class="text-xs text-gray-500 mt-1" x-text="formatDate(item.updated_at)"></p>
+                                                                    </div>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                        
+                                                        <!-- No history yet -->
+                                                        <template x-if="!trackingData.history || trackingData.history.length === 0">
+                                                            <div class="text-center py-8 text-gray-500">
+                                                                <p>Belum ada riwayat tracking.</p>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                            
+                                            <!-- Modal Footer -->
+                                            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                                                <button @click="showModal = false" 
+                                                        class="w-full px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-xl transition-colors">
+                                                    Tutup
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
                             </div>
                         @endif
                         
@@ -519,6 +678,78 @@ function copyTrackingNumber(text) {
         document.body.removeChild(textArea);
         alert('Nomor resi berhasil disalin: ' + text);
     });
+}
+
+// Alpine.js component untuk tracking
+function trackingComponent() {
+    return {
+        loading: false,
+        showModal: false,
+        error: null,
+        trackingData: null,
+        waybillId: '{{ $order->biteship_waybill_id ?? $order->tracking_number ?? "" }}',
+        
+        async loadTracking() {
+            this.loading = true;
+            this.error = null;
+            this.trackingData = null;
+            
+            try {
+                const response = await fetch('{{ route("customer.order.tracking", $order) }}', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.trackingData = data.data;
+                    this.showModal = true;
+                } else {
+                    this.error = data.message || 'Terjadi kesalahan saat memuat tracking.';
+                    this.showModal = true;
+                }
+            } catch (err) {
+                console.error('Tracking error:', err);
+                this.error = 'Gagal mengambil data tracking. Silakan coba lagi.';
+                this.showModal = true;
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        formatStatus(status) {
+            const statusMap = {
+                'confirmed': 'Pesanan Dikonfirmasi',
+                'allocated': 'Kurir Dialokasikan',
+                'pickingUp': 'Kurir Menjemput',
+                'picked': 'Sudah Dijemput',
+                'droppingOff': 'Dalam Pengiriman',
+                'delivered': 'Terkirim',
+                'onHold': 'Ditunda',
+                'rejected': 'Ditolak',
+                'cancelled': 'Dibatalkan',
+                'returned': 'Dikembalikan',
+                'courierNotFound': 'Kurir Tidak Ditemukan'
+            };
+            return statusMap[status] || status;
+        },
+        
+        formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            const options = { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            return date.toLocaleDateString('id-ID', options) + ' WIB';
+        }
+    };
 }
 </script>
 @endpush

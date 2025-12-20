@@ -12,22 +12,25 @@ use Illuminate\Support\Facades\Log;
 
 class MidtransService
 {
-    const WAPISENDER_API_KEY = '2C5DC3EA-0A3F-41F0-AFFC-4B81F13BFFE1';
-    const WAPISENDER_DEVICE_KEY = 'P6JUQJ'; // <--- GANTI INI
-    const ADMIN_PHONE_NUMBER = '6281334112002'; // <--- GANTI INI (Nomor WA Admin, format 628...)
+    // Fonnte WhatsApp API Configuration
+    const FONNTE_TOKEN = 'f4HZoShcdaRSgW936fR4'; // <--- GANTI dengan token Fonnte Anda
+    const ADMIN_PHONE_NUMBER = '6281334112002'; // <--- GANTI dengan nomor WA Admin (format 628...)
 
     /**
-     * Mengirim notifikasi transaksi baru ke WhatsApp Admin.
+     * Mengirim notifikasi transaksi baru ke WhatsApp Admin via Fonnte.
      */
     public function sendWhatsAppNotification(Order $order, string $status)
     {
-        if (empty(self::WAPISENDER_DEVICE_KEY) || empty(self::ADMIN_PHONE_NUMBER)) {
-            Log::warning('WAPISENDER ERROR: Device Key or Admin Phone Number not configured.');
+        if (empty(self::FONNTE_TOKEN)) {
+            Log::warning('FONNTE ERROR: Token not configured.');
             return;
         }
 
-        $base_url = "https://wapisender.id/api/v5/message/text";
-        
+        if (empty(self::ADMIN_PHONE_NUMBER)) {
+            Log::warning('FONNTE ERROR: Admin Phone Number not configured.');
+            return;
+        }
+
         $orderAmount = number_format($order->total_amount, 0, ',', '.');
         $shippingCost = number_format($order->shipping_cost ?? 0, 0, ',', '.');
         $statusText = strtoupper($status);
@@ -87,32 +90,36 @@ class MidtransService
         $message .= "✅ Mohon segera cek dashboard admin untuk proses lebih lanjut.";
 
         try {
-            $response = Http::post($base_url, [
-                'api_key' => self::WAPISENDER_API_KEY,
-                'device_key' => self::WAPISENDER_DEVICE_KEY,
-                'destination' => self::ADMIN_PHONE_NUMBER,
+            // Fonnte API endpoint
+            $response = Http::withHeaders([
+                'Authorization' => self::FONNTE_TOKEN
+            ])->post('https://api.fonnte.com/send', [
+                'target' => self::ADMIN_PHONE_NUMBER,
                 'message' => $message,
+                'countryCode' => '62', // Indonesia
             ]);
 
             // Log full response untuk debugging
-            Log::info('WAPISENDER RESPONSE', [
+            Log::info('FONNTE RESPONSE', [
                 'status_code' => $response->status(),
                 'body' => $response->json(),
                 'destination' => self::ADMIN_PHONE_NUMBER,
                 'order_id' => $order->id
             ]);
 
-            if ($response->successful() && $response->json('status') === 'ok') {
-                Log::info('WAPISENDER SUCCESS: Notifikasi WA terkirim.', ['order_id' => $order->id]);
+            $responseData = $response->json();
+            if ($response->successful() && isset($responseData['status']) && $responseData['status'] === true) {
+                Log::info('FONNTE SUCCESS: Notifikasi WA terkirim.', ['order_id' => $order->id]);
             } else {
-                Log::error('WAPISENDER FAILED: Gagal kirim WA.', [
+                Log::error('FONNTE FAILED: Gagal kirim WA.', [
                     'response' => $response->body(),
-                    'status_code' => $response->status()
+                    'status_code' => $response->status(),
+                    'detail' => $responseData['detail'] ?? 'Unknown error'
                 ]);
             }
 
         } catch (\Exception $e) {
-            Log::error('WAPISENDER EXCEPTION:', ['error' => $e->getMessage()]);
+            Log::error('FONNTE EXCEPTION:', ['error' => $e->getMessage()]);
         }
     }
     

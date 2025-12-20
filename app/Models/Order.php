@@ -27,7 +27,15 @@ class Order extends Model
         'destination_district',
         'destination_province',
         'destination_postal_code',
+        'destination_latitude',
+        'destination_longitude',
         'total_weight',
+        // Biteship fields
+        'biteship_order_id',
+        'biteship_waybill_id',
+        'biteship_status',
+        'biteship_label_url',
+        'biteship_tracking_url',
     ];
 
     protected $casts = [
@@ -62,6 +70,11 @@ class Order extends Model
     public function payment()
     {
         return $this->hasOne(Payment::class);
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
     }
 
     public function orderItems()

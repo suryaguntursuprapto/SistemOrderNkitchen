@@ -85,6 +85,8 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::get('/order', [AdminController::class, 'orderIndex'])->name('order.index');
     Route::get('/order/{order}', [AdminController::class, 'orderShow'])->name('order.show');
     Route::get('/order/{order}/shipping-label', [AdminController::class, 'orderShippingLabel'])->name('order.shipping-label');
+    Route::get('/order/{order}/tracking', [AdminController::class, 'orderTracking'])->name('order.tracking');
+    Route::post('/order/{order}/create-biteship', [AdminController::class, 'createBiteshipOrder'])->name('order.create-biteship');
     Route::put('/order/{order}', [AdminController::class, 'orderUpdate'])->name('order.update');
     Route::delete('/order/{order}', [AdminController::class, 'orderDestroy'])->name('order.destroy');
     
@@ -150,6 +152,7 @@ Route::middleware(['auth', 'verified'])->prefix('customer')->name('customer.')->
     Route::get('/order/{order}', [CustomerController::class, 'orderShow'])->name('order.show'); // Detail pesanan
     Route::post('/order/{order}/reorder', [CustomerController::class, 'orderReorder'])->name('order.reorder'); // Pesan lagi
     Route::post('/order/{order}/confirm-delivery', [CustomerController::class, 'confirmDelivery'])->name('order.confirm-delivery'); // Konfirmasi pesanan sampai
+    Route::get('/order/{order}/tracking', [CustomerController::class, 'orderTracking'])->name('order.tracking'); // API tracking
      
     // Payment routes
     Route::get('/order/{order}/payment', [CustomerController::class, 'orderPayment'])->name('order.payment');

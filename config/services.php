@@ -41,10 +41,18 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URL'),
     ],
 
-    'rajaongkir' => [
-        'key' => env('RAJAONGKIR_API_KEY'),
-        'base_url' => env('RAJAONGKIR_BASE_URL'), // <-- AMBIL DARI ENV
-        'origin_city' => env('RAJAONGKIR_ORIGIN_CITY_ID', 38015),
+    'biteship' => [
+        'api_key' => env('BITESHIP_API_KEY'),
+        'base_url' => env('BITESHIP_BASE_URL', 'https://api.biteship.com'),
+        'origin_postal_code' => env('BITESHIP_ORIGIN_POSTAL_CODE', '41361'),
+        // Shipper info for airwaybill
+        'shipper_name' => env('BITESHIP_SHIPPER_NAME', 'N-Kitchen'),
+        'shipper_phone' => env('BITESHIP_SHIPPER_PHONE', ''),
+        'shipper_email' => env('BITESHIP_SHIPPER_EMAIL', ''),
+        'shipper_address' => env('BITESHIP_SHIPPER_ADDRESS', ''),
+        // Origin coordinates for instant couriers (GoSend, Grab)
+        'origin_latitude' => env('BITESHIP_ORIGIN_LATITUDE', '-6.3676'),
+        'origin_longitude' => env('BITESHIP_ORIGIN_LONGITUDE', '107.3024'),
     ],
 
     'midtrans' => [
@@ -56,3 +64,4 @@ return [
     ],
 
 ];
+                                    

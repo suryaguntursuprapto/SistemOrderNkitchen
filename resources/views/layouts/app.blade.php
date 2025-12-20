@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://code.jquery.com https://cdn.tailwindcss.com https://app.sandbox.midtrans.com https://app.midtrans.com; frame-src 'self' https://app.sandbox.midtrans.com https://app.midtrans.com; object-src 'none';">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://code.jquery.com https://cdn.tailwindcss.com https://app.sandbox.midtrans.com https://app.midtrans.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.bunny.net https://cdn.jsdelivr.net; img-src 'self' data: blob: https://*.tile.openstreetmap.org https://raw.githubusercontent.com https://cdnjs.cloudflare.com https://unpkg.com; frame-src 'self' https://app.sandbox.midtrans.com https://app.midtrans.com; object-src 'none';">
     
     <title>{{ config('app.name', 'N-Kitchen') }}</title>
     

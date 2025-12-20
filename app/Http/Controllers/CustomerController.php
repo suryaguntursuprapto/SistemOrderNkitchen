@@ -11,7 +11,8 @@ use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Category;
 use App\Services\MidtransService;
-use App\Services\AccountingService; 
+use App\Services\AccountingService;
+use App\Services\BiteshipService; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -28,11 +29,13 @@ class CustomerController extends Controller
 
     protected $midtransService;
     protected $accountingService;
+    protected $biteshipService;
 
-    public function __construct(MidtransService $midtransService, AccountingService $accountingService)
+    public function __construct(MidtransService $midtransService, AccountingService $accountingService, BiteshipService $biteshipService)
     {
         $this->midtransService = $midtransService;
         $this->accountingService = $accountingService;
+        $this->biteshipService = $biteshipService;
         $this->middleware('auth');
         $this->middleware(function ($request, $next) {
             if (!auth()->user()->isCustomer()) {
@@ -42,13 +45,13 @@ class CustomerController extends Controller
         });
     }
 
-    // --- API WILAYAH & ONGKIR (KOMERCE) ---
+    // --- API WILAYAH & ONGKIR (BITESHIP) ---
 
-    private function getKomerceHeaders()
+    private function getBiteshipHeaders()
     {
-        // PERBAIKAN: Menggunakan header 'key' untuk API V1/V2
         return [
-            'key' => config('services.rajaongkir.key'), 
+            'Authorization' => config('services.biteship.api_key'),
+            'Content-Type' => 'application/json',
             'Accept' => 'application/json',
         ];
     }
@@ -79,78 +82,175 @@ class CustomerController extends Controller
 
     public function checkShippingCost(Request $request)
     {
-        // 💡 PERBAIKAN: Baca data dari JSON body menggunakan $request->json()
         $payload = $request->json();
 
-        $shipper_id = config('services.rajaongkir.origin_city'); 
+        $originPostalCode = config('services.biteship.origin_postal_code');
+        $originLatitude = config('services.biteship.origin_latitude');
+        $originLongitude = config('services.biteship.origin_longitude');
         
         // Baca data dari payload JSON:
-        $receiver_id = $payload->get('destination_id');
+        $destinationPostalCode = $payload->get('destination_postal_code');
+        $destinationAreaId = $payload->get('destination_area_id');
+        $destinationLatitude = $payload->get('destination_latitude');
+        $destinationLongitude = $payload->get('destination_longitude');
         $weight = max(1, (int)$payload->get('weight')); 
         $courier = $payload->get('courier');
-        $item_value = $payload->get('item_value') ?? 0;
+        $itemValue = $payload->get('item_value') ?? 0;
 
+        \Log::info('SHIPPING CHECK: Payload received', [
+            'origin_postal_code' => $originPostalCode,
+            'origin_coords' => "{$originLatitude}, {$originLongitude}",
+            'destination_postal_code' => $destinationPostalCode,
+            'destination_area_id' => $destinationAreaId,
+            'destination_coords' => "{$destinationLatitude}, {$destinationLongitude}",
+            'courier' => $courier,
+            'weight' => $weight,
+        ]);
         
-        // Cek Origin City
-        if (empty($shipper_id)) {
-            \Log::error('Komerce API (Cost) Failed: Origin city ID is missing in .env');
-            return response()->json(['error' => 'ID Kota Asal (Origin City) tidak diatur di konfigurasi.'], 500);
+        // Validasi destination
+        if (empty($destinationPostalCode) && empty($destinationAreaId) && (empty($destinationLatitude) || empty($destinationLongitude))) {
+            \Log::warning('SHIPPING ABORTED: Destination postal code, area ID, or coordinates are missing.');
+            return response()->json(['error' => 'Pilih kota/kecamatan tujuan terlebih dahulu.'], 400); 
         }
-        
-        // 🛑 KONDISI YANG MENCEGAH API CALL JIKA KOSONG (dari debugging sebelumnya)
-        if (empty($receiver_id) || empty($courier)) {
-             \Log::warning('SHIPPING ABORTED: Destination ID or Courier is missing in payload.');
-             return response()->json(['error' => 'Pilihan Kota atau Kurir Belum Lengkap.'], 400); 
+
+        if (empty($courier)) {
+            \Log::warning('SHIPPING ABORTED: Courier is missing in payload.');
+            return response()->json(['error' => 'Pilih kurir pengiriman.'], 400); 
         }
 
         try {
-            // PERBAIKAN: Menggunakan endpoint calculate yang BENAR sesuai dokumentasi Komerce
-            $endpoint = config('services.rajaongkir.base_url') . '/api/v1/calculate/domestic-cost';
+            $endpoint = config('services.biteship.base_url') . '/v1/rates/couriers';
             
-            // Debug log untuk melihat nilai yang dikirim
-            \Log::info('Komerce API (Cost) Request', [
+            // Map courier code ke format Biteship
+            $courierCodes = $this->mapCourierToBiteship($courier);
+            
+            // Cek apakah ini kurir instant (gojek, grab)
+            $isInstantCourier = in_array($courierCodes, ['gojek', 'grab']);
+            
+            // Build request body
+            $requestBody = [
+                'couriers' => $courierCodes,
+                'items' => [
+                    [
+                        'name' => 'N-Kitchen',
+                        'value' => (int)$itemValue,
+                        'weight' => (int)$weight,
+                        'quantity' => 1
+                    ]
+                ]
+            ];
+
+            // Untuk instant couriers, gunakan koordinat
+            if ($isInstantCourier && $destinationLatitude && $destinationLongitude && $originLatitude && $originLongitude) {
+                $requestBody['origin_latitude'] = (float)$originLatitude;
+                $requestBody['origin_longitude'] = (float)$originLongitude;
+                $requestBody['destination_latitude'] = (float)$destinationLatitude;
+                $requestBody['destination_longitude'] = (float)$destinationLongitude;
+                
+                \Log::info('Using coordinates for instant courier', [
+                    'courier' => $courierCodes,
+                    'origin' => "{$originLatitude}, {$originLongitude}",
+                    'destination' => "{$destinationLatitude}, {$destinationLongitude}"
+                ]);
+            } else {
+                // Untuk kurir reguler, gunakan postal code
+                if (empty($originPostalCode)) {
+                    \Log::error('Biteship API (Cost) Failed: Origin postal code is missing in .env for non-instant courier.');
+                    return response()->json(['error' => 'Kode pos asal tidak diatur di konfigurasi.'], 500);
+                }
+                $requestBody['origin_postal_code'] = $originPostalCode;
+                
+                if (!empty($destinationPostalCode)) {
+                    $requestBody['destination_postal_code'] = $destinationPostalCode;
+                } elseif (!empty($destinationAreaId)) {
+                    $requestBody['destination_area_id'] = $destinationAreaId;
+                }
+            }
+            
+            \Log::info('Biteship API (Cost) Request', [
                 'endpoint' => $endpoint,
-                'origin' => $shipper_id,
-                'destination' => $receiver_id,
-                'weight' => $weight,
-                'courier' => $courier
+                'body' => $requestBody
             ]);
             
-            // 🛑 SOLUSI KRITIS: Menggunakan asForm() dengan key KAPITAL
-            $response = Http::withHeaders($this->getKomerceHeaders())
-                            ->asForm() 
-                            ->post($endpoint, [
-                                
-                                // PERBAIKAN KRITIS: Kirim key KAPITAL untuk memenuhi validasi API
-                                'origin' => (string)$shipper_id, 
-                                'destination' => (string)$receiver_id,
-                                'weight' => (int)$weight, 
-                                
-                                'courier' => $courier, 
-                                'price' => 'lowest'
-                            ]);
+            $response = Http::withHeaders($this->getBiteshipHeaders())
+                            ->post($endpoint, $requestBody);
 
-               if (!$response->successful()) {
-                \Log::error('Komerce API (Cost) Failed: ' . $response->status() . ' - ' . $response->body());
+            if (!$response->successful()) {
+                \Log::error('Biteship API (Cost) Failed: ' . $response->status() . ' - ' . $response->body());
                 
                 $status = $response->status();
                 $errorBody = $response->json();
                 
-                $message = $errorBody['message'] ?? $errorBody['meta']['message'] ?? 'Gagal mengambil biaya. Cek Izin API Key atau Berat Barang.';
+                $rawMessage = $errorBody['error'] ?? $errorBody['message'] ?? 'Gagal mengambil biaya pengiriman.';
                 
-                // Jika error 422 muncul, ini berarti API Komerce menolak format data courier
-                return response()->json(['error' => "API Error ({$status}): {$message}"], 500);
+                // Handle specific error messages
+                if (str_contains($rawMessage, 'No courier available')) {
+                    $courierName = $this->getCourierDisplayName($courier);
+                    $message = "Kurir {$courierName} tidak tersedia untuk lokasi ini. Silakan pilih kurir lain.";
+                } elseif (str_contains($rawMessage, 'No sufficient balance')) {
+                    $message = "Saldo API tidak cukup. Hubungi admin untuk top up saldo Biteship.";
+                } else {
+                    $message = $rawMessage;
+                }
+                
+                return response()->json(['error' => $message], 500);
             }
 
             $data = $response->json();
-            $results = $data['data'] ?? ($data['results'] ?? []); 
+            
+            // Biteship mengembalikan pricing array
+            $pricing = $data['pricing'] ?? [];
+            
+            // Transform ke format yang konsisten dengan frontend
+            $results = collect($pricing)->map(function ($item) {
+                return [
+                    'courier_code' => $item['courier_code'] ?? '',
+                    'courier_name' => $item['courier_name'] ?? '',
+                    'service_code' => $item['courier_service_code'] ?? '',
+                    'service' => $item['courier_service_name'] ?? '',
+                    'name' => $item['courier_name'] ?? '',
+                    'cost' => $item['price'] ?? 0,
+                    'etd' => $item['duration'] ?? '-',
+                    'description' => $item['description'] ?? '',
+                ];
+            })->values()->all();
 
             return response()->json($results);
 
         } catch (\Exception $e) {
-            \Log::error('HTTP Client Exception (Cost): ' . $e->getMessage());
+            \Log::error('Biteship API Exception (Cost): ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Map courier code to Biteship format
+     */
+    private function mapCourierToBiteship($courier)
+    {
+        $mapping = [
+            'jne' => 'jne',
+            'sicepat' => 'sicepat',
+            'jnt' => 'jnt',
+            'gosend' => 'gojek', // Biteship menggunakan 'gojek' untuk GoSend
+        ];
+        
+        return $mapping[$courier] ?? $courier;
+    }
+
+    /**
+     * Get courier display name for user-friendly messages
+     */
+    private function getCourierDisplayName($courier)
+    {
+        $names = [
+            'jne' => 'JNE',
+            'sicepat' => 'SiCepat',
+            'jnt' => 'J&T Express',
+            'gosend' => 'GoSend',
+        ];
+        
+        return $names[$courier] ?? strtoupper($courier);
     }
 
     /**
@@ -161,55 +261,65 @@ class CustomerController extends Controller
     public function searchDestination(Request $request)
     {
         $keyword = $request->keyword;
-        \Log::info('DESTINATION SEARCH: Keyword received', ['keyword' => $keyword]);
+        \Log::info('BITESHIP DESTINATION SEARCH: Keyword received', ['keyword' => $keyword]);
+        
         if (empty($keyword) || strlen($keyword) < 3) {
             return response()->json(['results' => []]);
         }
 
         try {
-            $endpoint = config('services.rajaongkir.base_url') . '/api/v1/destination/domestic-destination';
+            $endpoint = config('services.biteship.base_url') . '/v1/maps/areas';
             
-            $response = Http::withHeaders($this->getKomerceHeaders())->get($endpoint, [
-                'search' => $keyword, 
-                'limit' => 20, 
-                'offset' => 0
+            $response = Http::withHeaders($this->getBiteshipHeaders())->get($endpoint, [
+                'countries' => 'ID',
+                'input' => $keyword,
+                'type' => 'single'
             ]);
 
             if (!$response->successful()) {
-                \Log::error('Komerce API (Search) Failed: ' . $response->status() . ' - ' . $response->body());
+                \Log::error('Biteship API (Search) Failed: ' . $response->status() . ' - ' . $response->body());
                 
-                // 💡 PERBAIKAN: Jika 404, kembalikan array kosong agar Select2 tidak error
                 if ($response->status() == 404) {
                     return response()->json(['results' => []]);
                 }
                 
                 $errorBody = $response->json();
-                $message = $errorBody['message'] ?? 'Gagal koneksi API Komerce (Status: ' . $response->status() . ').';
+                $message = $errorBody['error'] ?? 'Gagal koneksi API Biteship (Status: ' . $response->status() . ').';
                 return response()->json(['results' => [], 'error' => $message], 500);
             }
 
             $data = $response->json();
-            $results = $data['data'] ?? []; 
+            $areas = $data['areas'] ?? []; 
             
-            $formattedResults = collect($results)->map(function ($item) {
-                // Kunci yang dikembalikan dari API V2 adalah 'id' (Subdistrict ID) dan 'label'.
-                // Kita harus memetakan 'label' ke 'text' untuk Select2.
-                // Juga ambil postal_code jika tersedia
-                return [
-                    'id' => $item['id'] ?? null, 
-                    'text' => $item['label'] ?? 'Alamat Tidak Dikenal', 
-                    'city_id' => $item['city_name'] ?? null,
-                    'postal_code' => $item['postal_code'] ?? $item['zip_code'] ?? null,
-                    'province' => $item['province'] ?? $item['province_name'] ?? null,
-                ];
-            })->filter(function($item) {
-                return $item['id'] !== null; 
-            })->values()->all();
+            // Log response untuk debug koordinat
+            if (!empty($areas)) {
+                \Log::info('Biteship Maps API Response (first result)', [
+                    'first_item' => $areas[0] ?? null
+                ]);
+            }
+            
+            // Transform ke format Select2
+        $formattedResults = collect($areas)->map(function ($item) {
+            // Biteship mengembalikan: id, name, country_name, postal_code, administrative_division_level_*, latitude, longitude
+            return [
+                'id' => $item['id'] ?? null,  // Biteship area_id
+                'text' => $item['name'] ?? 'Alamat Tidak Dikenal', 
+                'postal_code' => $item['postal_code'] ?? null,
+                'province' => $item['administrative_division_level_1_name'] ?? null,
+                'city' => $item['administrative_division_level_2_name'] ?? null,
+                'district' => $item['administrative_division_level_3_name'] ?? null,
+                // Tambah koordinat untuk instant couriers (GoSend, Grab)
+                'latitude' => $item['latitude'] ?? null,
+                'longitude' => $item['longitude'] ?? null,
+            ];
+        })->filter(function($item) {
+            return $item['id'] !== null; 
+        })->values()->all();
 
             return response()->json(['results' => $formattedResults]);
 
         } catch (\Exception $e) {
-            \Log::error('HTTP Client Exception (Search): ' . $e->getMessage());
+            \Log::error('Biteship API Exception (Search): ' . $e->getMessage());
             return response()->json(['results' => [], 'error' => 'Gagal koneksi ke server API. (Jaringan)'], 500);
         }
     }
@@ -368,6 +478,8 @@ class CustomerController extends Controller
             'destination_name' => ['required', 'string'], // Nama kota/kecamatan
             'destination_province' => ['nullable', 'string'], // Provinsi
             'destination_postal_code' => ['nullable', 'string'], // Kode pos
+            'destination_latitude' => ['nullable', 'numeric', 'between:-90,90'], // Latitude untuk GoSend
+            'destination_longitude' => ['nullable', 'numeric', 'between:-180,180'], // Longitude untuk GoSend
             'courier' => ['required', 'string'],
             'shipping_service' => ['required', 'string'],
             'shipping_cost' => ['required', 'numeric', 'min:0'],
@@ -451,6 +563,8 @@ class CustomerController extends Controller
                     'destination_district' => $this->extractDistrictFromDestination($validated['destination_name']),
                     'destination_province' => $validated['destination_province'] ?? $this->extractProvinceFromDestination($validated['destination_name']),
                     'destination_postal_code' => $validated['destination_postal_code'] ?? null,
+                    'destination_latitude' => $validated['destination_latitude'] ?? null, // Untuk GoSend
+                    'destination_longitude' => $validated['destination_longitude'] ?? null, // Untuk GoSend
                     'courier' => $validated['courier'],
                     'shipping_service' => $validated['shipping_service'],
                     'shipping_cost' => $validated['shipping_cost'], // <-- ONGKIR DITAMBAH SEBAGAI FIELD TERPISAH
@@ -810,8 +924,9 @@ class CustomerController extends Controller
                 \Log::info("Memanggil AccountingService untuk Order: {$order->order_number}");
                 $this->accountingService->recordSale($order);
                 
-                // 🔔 NEW: Panggil notifikasi WhatsApp Admin
-                $order->refresh(); // Ambil data Order terbaru termasuk alamat pengiriman
+                // Refresh order data
+                $order->refresh();
+                $order->load('orderItems.menu'); // Load untuk Biteship
                 
                 // Debug log untuk melihat data order
                 \Log::info('Order data untuk WA notifikasi', [
@@ -822,7 +937,36 @@ class CustomerController extends Controller
                     'delivery_address' => $order->delivery_address
                 ]);
                 
+                // 🔔 Panggil notifikasi WhatsApp Admin
                 $this->midtransService->sendWhatsAppNotification($order, 'CONFIRMED');
+                
+                // 📦 DISABLED: Auto-create Biteship order
+                // Sekarang admin harus manual trigger dari halaman order detail (untuk mendukung sistem PO)
+                // Uncomment jika ingin auto-create lagi setelah pembayaran
+                /*
+                try {
+                    \Log::info("Membuat order Biteship untuk: {$order->order_number}");
+                    $biteshipResult = $this->biteshipService->createOrder($order);
+                    
+                    if ($biteshipResult && $biteshipResult['success']) {
+                        \Log::info("Biteship order berhasil dibuat", [
+                            'order_number' => $order->order_number,
+                            'waybill_id' => $order->tracking_number
+                        ]);
+                    } elseif ($biteshipResult) {
+                        \Log::warning("Biteship order gagal dibuat", [
+                            'order_number' => $order->order_number,
+                            'error' => $biteshipResult['error'] ?? 'Unknown error'
+                        ]);
+                    }
+                } catch (\Exception $biteshipException) {
+                    // Log error tapi jangan gagalkan proses utama
+                    \Log::error("Exception saat membuat Biteship order", [
+                        'order_number' => $order->order_number,
+                        'error' => $biteshipException->getMessage()
+                    ]);
+                }
+                */
             }
 
         } catch (\Exception $e) {
@@ -1184,6 +1328,97 @@ class CustomerController extends Controller
         $order->update(['status' => 'delivered']);
         
         return back()->with('success', 'Terima kasih! Pesanan Anda telah dikonfirmasi sampai. Selamat menikmati! 🎉');
+    }
+
+    /**
+     * Get order tracking information from Biteship
+     */
+    public function orderTracking(Order $order)
+    {
+        $this->authorize('view', $order);
+        
+        // Instant couriers (gosend, grab) need order ID not waybill
+        $instantCouriers = ['gosend', 'grab', 'gojek'];
+        $isInstantCourier = in_array(strtolower($order->courier ?? ''), $instantCouriers);
+        
+        // For instant couriers, use biteship_order_id; for others use waybill
+        if ($isInstantCourier) {
+            $trackingId = $order->biteship_order_id;
+            if (empty($trackingId)) {
+                $trackingId = $order->biteship_waybill_id ?? $order->tracking_number;
+            }
+            
+            // If instant courier has no tracking ID, return informative response
+            if (empty($trackingId)) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'status' => 'waiting',
+                        'courier' => strtoupper($order->courier),
+                        'is_instant' => true,
+                        'history' => [
+                            [
+                                'note' => 'Kurir instan ('. strtoupper($order->courier) .') akan menjemput pesanan Anda segera.',
+                                'updated_at' => now()->toIso8601String()
+                            ],
+                            [
+                                'note' => 'Tracking real-time akan tersedia setelah kurir mengambil paket. Pantau notifikasi dari aplikasi untuk update.',
+                                'updated_at' => now()->subMinute()->toIso8601String()
+                            ]
+                        ]
+                    ]
+                ]);
+            }
+        } else {
+            $trackingId = $order->biteship_waybill_id ?? $order->tracking_number;
+        }
+        
+        if (empty($trackingId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nomor resi belum tersedia untuk pesanan ini.'
+            ]);
+        }
+        
+        if (empty($order->courier)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Informasi kurir tidak tersedia.'
+            ]);
+        }
+        
+        // Get tracking from Biteship
+        $tracking = $this->biteshipService->getTracking($trackingId, $order->courier);
+        
+        if (!$tracking) {
+            // For instant couriers, return a helpful message instead of error
+            if ($isInstantCourier) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'status' => 'processing',
+                        'courier' => strtoupper($order->courier),
+                        'is_instant' => true,
+                        'history' => [
+                            [
+                                'note' => 'Pesanan sedang diproses. Kurir akan segera menjemput.',
+                                'updated_at' => now()->toIso8601String()
+                            ]
+                        ]
+                    ]
+                ]);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak dapat mengambil informasi tracking. Silakan coba lagi nanti.'
+            ]);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'data' => $tracking
+        ]);
     }
 
     // ==================== CHAT METHODS ====================

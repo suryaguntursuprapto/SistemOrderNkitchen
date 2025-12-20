@@ -16,8 +16,81 @@
             </div>
             
             <div class="p-6 space-y-6">
+                <!-- Info Penerima & Pengiriman -->
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
+                    <h4 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        Info Penerima
+                    </h4>
+                    <div class="grid gap-2 text-sm">
+                        <div class="flex items-start gap-3">
+                            <span class="text-gray-500 w-20 shrink-0">Nama:</span>
+                            <span class="font-medium text-gray-900">{{ $order->recipient_name }}</span>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="text-gray-500 w-20 shrink-0">Telepon:</span>
+                            <span class="font-medium text-gray-900">{{ $order->phone }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alamat Pengiriman -->
+                <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
+                    <h4 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Alamat Pengiriman
+                    </h4>
+                    <div class="text-sm space-y-1">
+                        <p class="text-gray-900">{{ $order->delivery_address }}</p>
+                        @if($order->destination_district || $order->destination_city)
+                        <p class="text-gray-600">
+                            {{ $order->destination_district }}{{ $order->destination_district && $order->destination_city ? ', ' : '' }}{{ $order->destination_city }}
+                        </p>
+                        @endif
+                        @if($order->destination_province || $order->destination_postal_code)
+                        <p class="text-gray-600">
+                            {{ $order->destination_province }}{{ $order->destination_province && $order->destination_postal_code ? ' ' : '' }}{{ $order->destination_postal_code }}
+                        </p>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Info Kurir -->
+                <div class="bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl p-4 border border-orange-100">
+                    <h4 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path>
+                        </svg>
+                        Pengiriman
+                    </h4>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold 
+                                @if(strtolower($order->courier) === 'gosend') bg-green-100 text-green-800
+                                @elseif(strtolower($order->courier) === 'jne') bg-red-100 text-red-800
+                                @elseif(strtolower($order->courier) === 'sicepat') bg-yellow-100 text-yellow-800
+                                @else bg-blue-100 text-blue-800 @endif">
+                                {{ strtoupper($order->courier ?? 'N/A') }}
+                            </span>
+                            <span class="ml-2 text-sm text-gray-600">{{ $order->shipping_service ?? 'Reguler' }}</span>
+                        </div>
+                        <span class="font-semibold text-orange-600">Rp {{ number_format($order->shipping_cost ?? 0, 0, ',', '.') }}</span>
+                    </div>
+                </div>
+
+                <!-- Daftar Pesanan -->
                 <div>
-                    <h4 class="font-semibold text-gray-900 mb-3">Item Pesanan</h4>
+                    <h4 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                        </svg>
+                        Daftar Pesanan
+                    </h4>
                     
                     @php
                         // Hitung subtotal produk (tanpa ongkir) untuk ditampilkan
@@ -25,28 +98,29 @@
                     @endphp
 
                     @foreach($order->orderItems as $item)
-                        <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg mb-3 transition-all hover:bg-gray-100">
+                        <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg mb-2 transition-all hover:bg-gray-100">
                             @if($item->menu->image)
                                 <img src="{{ Storage::url($item->menu->image) }}" 
                                      alt="{{ $item->menu->name }}" 
-                                     class="w-16 h-16 rounded-lg object-cover shadow-sm">
+                                     class="w-14 h-14 rounded-lg object-cover shadow-sm">
                             @else
-                                <div class="w-16 h-16 bg-gradient-to-br from-orange-200 to-red-200 rounded-lg flex items-center justify-center shadow-sm">
-                                    <svg class="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="w-14 h-14 bg-gradient-to-br from-orange-200 to-red-200 rounded-lg flex items-center justify-center shadow-sm">
+                                    <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                     </svg>
                                 </div>
                             @endif
-                            <div class="flex-1">
-                                <h5 class="font-medium text-gray-900">{{ $item->menu->name }}</h5>
-                                <p class="text-sm text-gray-600">{{ $item->quantity }}x @ Rp {{ number_format($item->price, 0, ',', '.') }}</p>
-                                <p class="font-semibold text-orange-600">Rp {{ number_format($item->quantity * $item->price, 0, ',', '.') }}</p>
+                            <div class="flex-1 min-w-0">
+                                <h5 class="font-medium text-gray-900 text-sm truncate">{{ $item->menu->name }}</h5>
+                                <p class="text-xs text-gray-500">{{ $item->quantity }}x @ Rp {{ number_format($item->price, 0, ',', '.') }}</p>
                             </div>
+                            <p class="font-semibold text-orange-600 text-sm">Rp {{ number_format($item->quantity * $item->price, 0, ',', '.') }}</p>
                         </div>
                     @endforeach
                 </div>
 
-                <div class="border-t pt-4">
+                <!-- Ringkasan Total -->
+                <div class="border-t border-gray-200 pt-4">
                     <div class="space-y-2">
                         <div class="flex justify-between text-sm">
                             <span class="text-gray-600">Subtotal Menu:</span>
@@ -56,10 +130,10 @@
                             <span class="text-gray-600">Ongkos Kirim:</span>
                             <span class="font-medium">Rp {{ number_format($order->shipping_cost, 0, ',', '.') }}</span>
                         </div>
-                        <div class="border-t border-gray-200 pt-2 mt-3">
+                        <div class="border-t border-gray-200 pt-3 mt-3">
                             <div class="flex justify-between items-center">
                                 <span class="text-lg font-bold text-gray-900">Total Dibayar:</span>
-                                <span class="text-xl font-bold text-gray-900">
+                                <span class="text-xl font-bold text-orange-600">
                                     Rp {{ number_format($order->total_amount, 0, ',', '.') }}
                                 </span>
                             </div>

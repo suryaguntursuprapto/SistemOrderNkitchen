@@ -148,9 +148,10 @@
                     </label>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                         
-                        <!-- GoSend - Hanya muncul jika lokasi di Karawang -->
-                        <label x-show="isLocalKarawang" x-transition
-                            for="gosend" 
+                        <!-- GoSend - Hanya muncul untuk wilayah Karawang -->
+                        <label for="gosend" 
+                            x-show="isLocalKarawang"
+                            x-transition
                             :class="{'border-green-500 bg-green-50 shadow-md ring-2 ring-green-200': selectedCourier === 'gosend'}"
                             class="flex items-center justify-center px-3 py-3 border-2 border-green-300 rounded-xl cursor-pointer hover:bg-green-50 active:bg-green-100 transition-all duration-200 text-sm bg-green-50">
                             <input type="radio" name="courier" id="gosend" value="gosend" 
@@ -195,11 +196,42 @@
                         
                     </div>
                     
-                    <!-- Info GoSend -->
+                    <!-- Info GoSend - Hanya muncul untuk Karawang -->
                     <p x-show="isLocalKarawang" x-transition class="text-xs text-green-600 mt-2 flex items-center gap-1">
                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                        GoSend tersedia untuk area Karawang (pengiriman 1-2 jam)
+                        ⚡ GoSend tersedia untuk pengiriman instan (1-2 jam) ke Karawang
                     </p>
+                </div>
+                
+                <!-- GoSend Map Picker - Tampil saat GoSend dipilih -->
+                <div x-show="selectedCourier === 'gosend' && selectedDestinationId" x-transition class="mb-4">
+                    <div class="bg-green-50 border-2 border-green-200 rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-semibold text-green-800 flex items-center gap-2">
+                                📍 Pilih Lokasi Pengiriman GoSend
+                            </h4>
+                            <button type="button" @click="getMyLocation()" class="text-xs bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700">
+                                📍 Lokasi Saya
+                            </button>
+                        </div>
+                        <p class="text-xs text-green-700 mb-3">Pindahkan pin merah ke lokasi pengiriman yang tepat, atau klik di peta.</p>
+                        
+                        <!-- Map Container -->
+                        <div id="gosend-inline-map" class="w-full h-64 rounded-xl border-2 border-green-300 mb-3"></div>
+                        
+                        <!-- Koordinat terpilih -->
+                        <div class="flex items-center justify-between bg-white rounded-lg p-2 text-sm">
+                            <span class="text-gray-600">
+                                Koordinat: <span class="font-mono font-medium text-green-700" x-text="selectedDestinationLatitude && selectedDestinationLongitude ? parseFloat(selectedDestinationLatitude).toFixed(6) + ', ' + parseFloat(selectedDestinationLongitude).toFixed(6) : 'Belum dipilih'"></span>
+                            </span>
+                            <button type="button" @click="confirmGoSendLocation()" 
+                                :disabled="!selectedDestinationLatitude || !selectedDestinationLongitude"
+                                :class="selectedDestinationLatitude && selectedDestinationLongitude ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-300 cursor-not-allowed'"
+                                class="px-4 py-2 text-white text-sm font-medium rounded-lg transition">
+                                ✓ Konfirmasi Lokasi
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Layanan Pengiriman -->
@@ -257,6 +289,8 @@
                 <input type="hidden" name="destination_name" x-model="selectedDestinationText">
                 <input type="hidden" name="destination_province" x-model="selectedDestinationProvince">
                 <input type="hidden" name="destination_postal_code" x-model="selectedDestinationPostalCode">
+                <input type="hidden" name="destination_latitude" x-model="selectedDestinationLatitude">
+                <input type="hidden" name="destination_longitude" x-model="selectedDestinationLongitude">
                 <input type="hidden" name="item_value" value="{{ $itemValue }}"> </div>
         </div>
         
@@ -417,9 +451,147 @@
 @endsection
 
 @push('scripts')
+<!-- Map Modal Template - will be cloned and shown by JS -->
+<template id="gosend-map-modal-template">
+    <div id="gosend-map-modal" class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onclick="closeGoSendMapModal()"></div>
+            
+            <div class="relative z-50 w-full max-w-2xl p-6 mx-auto bg-white rounded-2xl shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-gray-900">📍 Pilih Lokasi Pengiriman GoSend</h3>
+                    <button onclick="closeGoSendMapModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <p class="text-sm text-gray-600 mb-3">Pindahkan pin ke lokasi pengiriman yang tepat untuk GoSend.</p>
+                
+                <!-- Map Container -->
+                <div id="gosend-map" class="w-full h-80 rounded-xl border-2 border-gray-200 mb-4"></div>
+                
+                <!-- Koordinat terpilih -->
+                <div class="bg-gray-50 rounded-lg p-3 mb-4 text-sm">
+                    <p class="text-gray-600">
+                        Koordinat: <span id="gosend-coords-display" class="font-mono font-medium text-gray-900">-6.3676, 107.3024</span>
+                    </p>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button onclick="closeGoSendMapModal()" 
+                        class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition">
+                        Batal
+                    </button>
+                    <button onclick="confirmGoSendLocation()" 
+                        class="flex-1 px-4 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition">
+                        ✓ Gunakan Lokasi Ini
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+@endpush
+
+@push('scripts')
+<!-- Leaflet CSS & JS for Map Picker -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<!-- Fix untuk Select2 styling -->
+<style>
+    /* Hide native select completely */
+    select#destination_id_select2.select2-hidden-accessible {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+    }
+    
+    /* Container styling */
+    .select2-container {
+        width: 100% !important;
+    }
+    
+    /* Main selection box */
+    .select2-container--default .select2-selection--single {
+        height: 48px !important;
+        padding: 0 !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 12px !important;
+        background-color: #fff !important;
+    }
+    
+    .select2-container--default .select2-selection--single:hover {
+        border-color: #f97316 !important;
+    }
+    
+    .select2-container--default.select2-container--focus .select2-selection--single {
+        border-color: #f97316 !important;
+        box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2) !important;
+    }
+    
+    /* Selected text */
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 48px !important;
+        padding-left: 16px !important;
+        padding-right: 40px !important;
+        color: #374151 !important;
+        font-size: 14px !important;
+    }
+    
+    /* Arrow */
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 46px !important;
+        right: 12px !important;
+    }
+    
+    /* Dropdown */
+    .select2-dropdown {
+        border: 1px solid #e5e7eb !important;
+        border-radius: 12px !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.1) !important;
+        margin-top: 4px !important;
+        z-index: 9999 !important;
+        background-color: #fff !important;
+    }
+    
+    .select2-container--open .select2-dropdown {
+        z-index: 10000 !important;
+    }
+    
+    /* Search input */
+    .select2-container--default .select2-search--dropdown .select2-search__field {
+        border: 1px solid #d1d5db !important;
+        border-radius: 8px !important;
+        padding: 10px 12px !important;
+        font-size: 14px !important;
+    }
+    
+    /* Results */
+    .select2-results__option {
+        padding: 10px 16px !important;
+        font-size: 14px !important;
+    }
+    
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #fff7ed !important;
+        color: #ea580c !important;
+    }
+    
+    .select2-container--default .select2-results__option[aria-selected=true] {
+        background-color: #f97316 !important;
+        color: #fff !important;
+    }
+</style>
 
 <script>
     const subtotalMenu = {{ $subtotalMenu }};
@@ -441,10 +613,13 @@
             shippingCost: 0,
             grandTotal: subtotalMenu,
             selectedDestinationId: '{{ old('destination_id') }}',
-            selectedDestinationText: '', // Nama lokasi tujuan untuk deteksi GoSend
+            selectedDestinationAreaId: '', // Biteship area_id
+            selectedDestinationText: '', // Nama lokasi tujuan
             selectedDestinationProvince: '', // Provinsi tujuan
             selectedDestinationPostalCode: '', // Kode pos tujuan
-            isLocalKarawang: false, // Apakah lokasi dalam jangkauan GoSend (Karawang)
+            selectedDestinationLatitude: '', // Latitude untuk instant couriers
+            selectedDestinationLongitude: '', // Longitude untuk instant couriers
+            isLocalKarawang: false, // Apakah lokasi dalam jangkauan lokal
             selectedCourier: '',
             selectedService: '',
             selectedPaymentMethod: null,
@@ -452,12 +627,12 @@
             loading: false,
             error: null,
             
-            // Kurir tersedia - GoSend akan muncul jika lokasi di Karawang
+            // Kurir tersedia - GoSend menggunakan Biteship API (gojek)
             availableCouriers: [
+                { id: 'gosend', name: '⚡ GoSend (Instant)' },
                 { id: 'jne', name: 'JNE' },
                 { id: 'sicepat', name: 'SiCepat' },
                 { id: 'jnt', name: 'J&T Express' },
-                // Anda bisa menambahkan kurir lain dari list yang valid di Komerce
             ],
 
             initSelect2() {
@@ -522,17 +697,21 @@
                     // 4. Update variabel Alpine secara eksplisit
                     this.selectedDestinationId = e.params.data.id;
                     
-                    // 5. Simpan nama lokasi tujuan dan cek apakah di Karawang
+                    // 5. Simpan data lokasi tujuan dari Biteship
                     this.selectedDestinationText = e.params.data.text || '';
+                    this.selectedDestinationAreaId = e.params.data.id || ''; // Biteship area_id
                     this.isLocalKarawang = this.selectedDestinationText.toUpperCase().includes('KARAWANG');
                     
-                    // 5b. Ambil provinsi dan kode pos dari data API (jika tersedia)
-                    // Prioritas: gunakan data langsung dari API, fallback ke ekstraksi dari text
+                    // 5b. Ambil data dari API
                     if (e.params.data.postal_code) {
                         this.selectedDestinationPostalCode = e.params.data.postal_code;
                     } else {
                         this.selectedDestinationPostalCode = '';
                     }
+                    
+                    // 5c. Simpan koordinat untuk instant couriers (GoSend, Grab)
+                    this.selectedDestinationLatitude = e.params.data.latitude || '';
+                    this.selectedDestinationLongitude = e.params.data.longitude || '';
                     
                     if (e.params.data.province) {
                         this.selectedDestinationProvince = e.params.data.province;
@@ -549,7 +728,9 @@
                     console.log('Destination data:', {
                         text: this.selectedDestinationText,
                         province: this.selectedDestinationProvince,
-                        postalCode: this.selectedDestinationPostalCode
+                        postalCode: this.selectedDestinationPostalCode,
+                        latitude: this.selectedDestinationLatitude,
+                        longitude: this.selectedDestinationLongitude
                     });
                     
                     // 6. Update list kurir berdasarkan lokasi
@@ -563,6 +744,7 @@
                 .on('select2:unselect', (e) => {
                     this.selectedDestinationId = '';
                     this.selectedDestinationText = '';
+                    this.selectedDestinationAreaId = '';
                     this.selectedDestinationProvince = '';
                     this.selectedDestinationPostalCode = '';
                     this.isLocalKarawang = false;
@@ -575,9 +757,163 @@
                 }
             },
 
-
             formatRupiah(amount) {
                 return 'Rp ' + new Intl.NumberFormat('id-ID').format(amount);
+            },
+
+            // Initilize inline GoSend map when visible
+            gosendMapInstance: null,
+            gosendMarker: null,
+            gosendMapInitialized: false,
+            
+            initGoSendMap() {
+                const mapContainer = document.getElementById('gosend-inline-map');
+                if (!mapContainer) {
+                    console.log('GoSend map container not found');
+                    return;
+                }
+                
+                // Jika sudah ada map, destroy dulu
+                if (this.gosendMapInstance) {
+                    this.gosendMapInstance.remove();
+                    this.gosendMapInstance = null;
+                    this.gosendMapInitialized = false;
+                }
+                
+                // Default ke Karawang jika belum ada koordinat
+                const lat = parseFloat(this.selectedDestinationLatitude) || -6.3676;
+                const lng = parseFloat(this.selectedDestinationLongitude) || 107.3024;
+                
+                console.log('Initializing GoSend map at:', lat, lng);
+                
+                // Initialize Leaflet map
+                this.gosendMapInstance = L.map('gosend-inline-map', {
+                    center: [lat, lng],
+                    zoom: 15
+                });
+                
+                // Add OpenStreetMap tiles
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap',
+                    maxZoom: 19
+                }).addTo(this.gosendMapInstance);
+                
+                // Add draggable marker
+                this.gosendMarker = L.marker([lat, lng], { draggable: true }).addTo(this.gosendMapInstance);
+                
+                // Red icon
+                const redIcon = L.icon({
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                });
+                this.gosendMarker.setIcon(redIcon);
+                this.gosendMarker.bindPopup('📍 Seret ke lokasi pengiriman').openPopup();
+                
+                // Update coordinates when marker dragged
+                this.gosendMarker.on('dragend', (e) => {
+                    const latlng = e.target.getLatLng();
+                    this.selectedDestinationLatitude = latlng.lat;
+                    this.selectedDestinationLongitude = latlng.lng;
+                });
+                
+                // Click on map to move marker
+                this.gosendMapInstance.on('click', (e) => {
+                    this.selectedDestinationLatitude = e.latlng.lat;
+                    this.selectedDestinationLongitude = e.latlng.lng;
+                    this.gosendMarker.setLatLng(e.latlng);
+                });
+                
+                // Set initial coordinates
+                this.selectedDestinationLatitude = lat;
+                this.selectedDestinationLongitude = lng;
+                
+                // PENTING: invalidateSize setelah container visible agar tiles terrender
+                setTimeout(() => {
+                    if (this.gosendMapInstance) {
+                        this.gosendMapInstance.invalidateSize();
+                        console.log('Map invalidateSize called');
+                    }
+                }, 300);
+                
+                this.gosendMapInitialized = true;
+                console.log('GoSend map initialized successfully');
+            },
+            
+            getMyLocation() {
+                if (!navigator.geolocation) {
+                    alert('Browser tidak mendukung GPS');
+                    return;
+                }
+                
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        this.selectedDestinationLatitude = pos.coords.latitude;
+                        this.selectedDestinationLongitude = pos.coords.longitude;
+                        
+                        if (this.gosendMapInstance && this.gosendMarker) {
+                            this.gosendMapInstance.setView([pos.coords.latitude, pos.coords.longitude], 16);
+                            this.gosendMarker.setLatLng([pos.coords.latitude, pos.coords.longitude]);
+                        }
+                        console.log('Got my location:', pos.coords);
+                    },
+                    (err) => {
+                        alert('Gagal mendapatkan lokasi: ' + err.message);
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            },
+            
+            confirmGoSendLocation() {
+                if (!this.selectedDestinationLatitude || !this.selectedDestinationLongitude) {
+                    alert('Pilih lokasi di peta terlebih dahulu');
+                    return;
+                }
+                console.log('Confirmed GoSend location:', this.selectedDestinationLatitude, this.selectedDestinationLongitude);
+                // Trigger shipping check
+                this.checkShipping();
+            },
+
+            // Fungsi untuk mendapatkan lokasi dari browser (untuk GoSend)
+            getBrowserLocation() {
+                return new Promise((resolve, reject) => {
+                    if (!navigator.geolocation) {
+                        reject(new Error('Geolocation tidak didukung browser ini'));
+                        return;
+                    }
+                    
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            resolve({
+                                latitude: position.coords.latitude,
+                                longitude: position.coords.longitude
+                            });
+                        },
+                        (error) => {
+                            let errorMessage = 'Gagal mendapatkan lokasi';
+                            switch(error.code) {
+                                case error.PERMISSION_DENIED:
+                                    errorMessage = 'Akses lokasi ditolak. Izinkan akses lokasi untuk menggunakan GoSend.';
+                                    break;
+                                case error.POSITION_UNAVAILABLE:
+                                    errorMessage = 'Lokasi tidak tersedia. Pastikan GPS aktif.';
+                                    break;
+                                case error.TIMEOUT:
+                                    errorMessage = 'Waktu permintaan lokasi habis. Coba lagi.';
+                                    break;
+                            }
+                            reject(new Error(errorMessage));
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 300000 // Cache 5 menit
+                        }
+                    );
+                });
             },
 
             // FUNGSI UNTUK MERENDER LAYANAN KURIR KE DALAM SELECT
@@ -608,50 +944,54 @@
             async checkShipping() {
                 if (!this.selectedDestinationId || !this.selectedCourier) return;
                 
+                // Untuk GoSend, init map dan tunggu user konfirmasi lokasi
+                if (this.selectedCourier === 'gosend') {
+                    // Init map jika belum
+                    if (!this.gosendMapInitialized) {
+                        this.$nextTick(() => {
+                            setTimeout(() => this.initGoSendMap(), 200);
+                        });
+                    }
+                    // Jika koordinat belum ada, tunggu user pilih di map
+                    if (!this.selectedDestinationLatitude || !this.selectedDestinationLongitude) {
+                        return; // Tunggu user konfirmasi lokasi
+                    }
+                }
+                
                 this.loading = true;
                 this.error = null;
                 this.availableServices = [];
                 this.selectedService = '';
                 this.updateTotal();
 
-                // Handle GoSend untuk area lokal Karawang
-                if (this.selectedCourier === 'gosend' && this.isLocalKarawang) {
-                    // Harga GoSend lokal tetap untuk wilayah Karawang
-                    this.availableServices = [{
-                        service_code: 'gosend_instant',
-                        service: 'Instant',
-                        name: 'GoSend',
-                        cost: 15000, // Harga tetap GoSend lokal
-                        etd: '1-2 Jam'
-                    }];
-                    this.renderShippingServices();
-                    this.loading = false;
-                    return;
-                }
-
-               try {
+                try {
                     const endpoint = '{{ route("customer.api.shipping") }}';
                     const res = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: this.getFetchHeaders(),
-                    body: JSON.stringify({
-                    // Menggunakan destination_id dari lokasi yang dipilih user
-                    destination_id: this.selectedDestinationId,
-                    courier: this.selectedCourier,
-                    weight: this.totalWeight,
-                    item_value: this.itemValue
-                    })
+                        method: 'POST',
+                        headers: this.getFetchHeaders(),
+                        body: JSON.stringify({
+                            // Biteship: gunakan postal_code atau area_id
+                            destination_postal_code: this.selectedDestinationPostalCode,
+                            destination_area_id: this.selectedDestinationAreaId,
+                            // Koordinat untuk instant couriers (GoSend, Grab)
+                            destination_latitude: this.selectedDestinationLatitude,
+                            destination_longitude: this.selectedDestinationLongitude,
+                            courier: this.selectedCourier,
+                            weight: this.totalWeight,
+                            item_value: this.itemValue
+                        })
                     });
                     
                     const data = await res.json();
                     
-                    console.log('API Shipping Status:', res.status);
-                    console.log('API Shipping Response Data:', data); 
+                    console.log('Biteship API Shipping Status:', res.status);
+                    console.log('Biteship API Shipping Response:', data); 
                     
                     if (!res.ok) {
                         this.error = data.error || 'Gagal mengambil biaya kirim. Cek Log Server.';
                         this.availableServices = [];
                         this.renderShippingServices();
+                        this.loading = false;
                         return;
                     }
                     
@@ -659,17 +999,18 @@
                         this.error = data.error || 'Tidak ada layanan pengiriman yang ditemukan untuk kurir ini.';
                         this.availableServices = [];
                         this.renderShippingServices();
+                        this.loading = false;
                         return;
                     }
 
-                    // Data Komerce Cost API mengembalikan array services langsung
-                    let allServices = Array.isArray(data) ? data : (data.data || []);
+                    // Biteship API mengembalikan array langsung dari controller
+                    let allServices = Array.isArray(data) ? data : [];
                     
-                    // FILTER: Hanya ambil layanan dengan harga termurah
+                    // Tampilkan semua layanan, atau filter termurah saja
                     if (allServices.length > 0) {
                         allServices.sort((a, b) => (a.cost || 0) - (b.cost || 0));
-                        // Ambil hanya 1 layanan termurah
-                        this.availableServices = [allServices[0]];
+                        // Tampilkan semua layanan (atau ambil hanya 1 termurah)
+                        this.availableServices = allServices;
                     } else {
                         this.availableServices = [];
                     }
@@ -688,7 +1029,7 @@
                 return {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
                     'Content-Type': 'application/json',
-                    'key': '{{ config("services.rajaongkir.key") }}' 
+                    'Accept': 'application/json'
                 };
             },
 
@@ -801,10 +1142,14 @@
                 
                 // Update Alpine data langsung
                 alpineData.selectedDestinationId = e.params.data.id;
+                alpineData.selectedDestinationAreaId = e.params.data.id; // Biteship area_id
                 alpineData.selectedDestinationText = e.params.data.text || '';
                 alpineData.isLocalKarawang = alpineData.selectedDestinationText.toUpperCase().includes('KARAWANG');
                 
-                // Ambil provinsi dan kode pos dari data API (jika tersedia)
+                // Update list kurir berdasarkan lokasi
+                alpineData.updateCourierList();
+                
+                // Ambil provinsi dan kode pos dari data Biteship API
                 if (e.params.data.postal_code) {
                     alpineData.selectedDestinationPostalCode = e.params.data.postal_code;
                 } else {
@@ -823,7 +1168,8 @@
                     }
                 }
                 
-                console.log('Destination data:', {
+                console.log('Biteship Destination data:', {
+                    areaId: alpineData.selectedDestinationAreaId,
                     text: alpineData.selectedDestinationText,
                     province: alpineData.selectedDestinationProvince,
                     postalCode: alpineData.selectedDestinationPostalCode
@@ -836,10 +1182,12 @@
             })
             .on('select2:unselect', (e) => {
                 alpineData.selectedDestinationId = '';
+                alpineData.selectedDestinationAreaId = '';
                 alpineData.selectedDestinationText = '';
                 alpineData.selectedDestinationProvince = '';
                 alpineData.selectedDestinationPostalCode = '';
                 alpineData.isLocalKarawang = false;
+                alpineData.updateCourierList();
                 alpineData.resetShipping();
             });
             
@@ -854,5 +1202,109 @@
     function hideDestinationError() {
         $('#destination-error-feedback').addClass('hidden');
     }
+
+    // GoSend Map Picker - Plain JS Implementation
+    let gosendMap = null;
+    let gosendMarker = null;
+    let gosendSelectedLat = -6.3676;
+    let gosendSelectedLng = 107.3024;
+    let gosendOnConfirmCallback = null;
+
+    window.openGoSendMapPicker = function(initialLat, initialLng, onConfirm) {
+        gosendSelectedLat = initialLat || -6.3676;
+        gosendSelectedLng = initialLng || 107.3024;
+        gosendOnConfirmCallback = onConfirm;
+
+        // Clone template and add to body
+        const template = document.getElementById('gosend-map-modal-template');
+        const modal = template.content.cloneNode(true);
+        document.body.appendChild(modal);
+
+        // Initialize map after modal is added to DOM
+        setTimeout(() => {
+            initGoSendMap();
+        }, 100);
+    };
+
+    function initGoSendMap() {
+        // Remove existing map if any
+        if (gosendMap) {
+            gosendMap.remove();
+            gosendMap = null;
+        }
+
+        // Initialize Leaflet map
+        gosendMap = L.map('gosend-map').setView([gosendSelectedLat, gosendSelectedLng], 15);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(gosendMap);
+
+        // Add draggable marker
+        gosendMarker = L.marker([gosendSelectedLat, gosendSelectedLng], {
+            draggable: true
+        }).addTo(gosendMap);
+
+        // Custom red marker icon
+        const redIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+        gosendMarker.setIcon(redIcon);
+        gosendMarker.bindPopup('📍 Seret pin ke lokasi pengiriman').openPopup();
+
+        // Update coordinates display when marker is dragged
+        gosendMarker.on('dragend', (e) => {
+            const latlng = e.target.getLatLng();
+            gosendSelectedLat = latlng.lat;
+            gosendSelectedLng = latlng.lng;
+            updateCoordsDisplay();
+        });
+
+        // Allow click on map to move marker
+        gosendMap.on('click', (e) => {
+            gosendSelectedLat = e.latlng.lat;
+            gosendSelectedLng = e.latlng.lng;
+            gosendMarker.setLatLng(e.latlng);
+            updateCoordsDisplay();
+        });
+
+        updateCoordsDisplay();
+    }
+
+    function updateCoordsDisplay() {
+        const display = document.getElementById('gosend-coords-display');
+        if (display) {
+            display.textContent = gosendSelectedLat.toFixed(6) + ', ' + gosendSelectedLng.toFixed(6);
+        }
+    }
+
+    window.confirmGoSendLocation = function() {
+        if (gosendOnConfirmCallback) {
+            gosendOnConfirmCallback({
+                latitude: gosendSelectedLat,
+                longitude: gosendSelectedLng
+            });
+        }
+        closeGoSendMapModal();
+    };
+
+    window.closeGoSendMapModal = function() {
+        // Remove map
+        if (gosendMap) {
+            gosendMap.remove();
+            gosendMap = null;
+        }
+        // Remove modal from DOM
+        const modal = document.getElementById('gosend-map-modal');
+        if (modal) {
+            modal.remove();
+        }
+    };
 </script>
 @endpush

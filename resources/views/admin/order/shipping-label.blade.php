@@ -59,6 +59,21 @@
             </div>
         </div>
 
+        <!-- Tracking Number / No Resi Section with Barcode -->
+        @if($order->biteship_waybill_id || $order->tracking_number)
+        <div class="px-6 py-4 border-b-2 border-gray-300" style="background-color: #fef3c7;">
+            <div class="text-center mb-3">
+                <p class="text-xs font-semibold text-yellow-800 uppercase tracking-wider mb-1">No. Resi / AWB</p>
+                <p class="text-2xl font-bold text-gray-900 font-mono tracking-wide">{{ $order->biteship_waybill_id ?? $order->tracking_number }}</p>
+            </div>
+            <!-- Barcode -->
+            <div class="flex justify-center">
+                <svg id="barcode-resi"></svg>
+            </div>
+        </div>
+        @endif
+
+
         <!-- Addresses Section -->
         <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-200">
             <!-- Sender Info -->
@@ -194,6 +209,29 @@
 </div>
 
 @push('scripts')
+<!-- JsBarcode Library for generating barcodes -->
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Generate barcode if element exists
+    const barcodeElement = document.getElementById('barcode-resi');
+    if (barcodeElement) {
+        const trackingNumber = "{{ $order->biteship_waybill_id ?? $order->tracking_number ?? '' }}";
+        if (trackingNumber) {
+            JsBarcode("#barcode-resi", trackingNumber, {
+                format: "CODE128",
+                width: 2,
+                height: 50,
+                displayValue: false,
+                margin: 5,
+                background: "#fef3c7"
+            });
+        }
+    }
+});
+</script>
+
 <style>
     @media print {
         /* Hide everything except the label */
