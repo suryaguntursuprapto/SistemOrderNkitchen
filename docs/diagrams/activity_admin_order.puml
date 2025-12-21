@@ -1,0 +1,143 @@
+@startuml Activity Diagram - Manajemen Pesanan Admin
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #2196F3
+skinparam ActivityDiamondBackgroundColor #FFF9C4
+skinparam ActivityDiamondBorderColor #FFC107
+
+title Activity Diagram - Manajemen Pesanan Admin
+
+|#E8F5E9|Admin|
+|#E3F2FD|Sistem|
+|#F3E5F5|Biteship|
+
+start
+
+|Admin|
+:Login Dashboard;
+
+|Sistem|
+:Tampilkan Dashboard Admin;
+:Load Total Pesanan Baru;
+
+|Admin|
+:Buka Halaman Pesanan;
+
+|Sistem|
+:Query Daftar Pesanan;
+:Tampilkan Tabel Pesanan;
+
+|Admin|
+:Filter/Cari Pesanan;
+:Pilih Pesanan;
+:Lihat Detail Pesanan;
+
+|Sistem|
+:Load Order + User + Items + Payment;
+:Tampilkan Detail Pesanan;
+
+|Admin|
+if (Status Pembayaran?) then (Belum Lunas)
+    note right: Tunggu pembayaran customer
+    stop
+else (Sudah Dibayar)
+endif
+
+:Update Status ke "Dikonfirmasi";
+
+|Sistem|
+:Simpan Status Order;
+:Kirim Notifikasi WhatsApp ke Customer;
+
+|Admin|
+:Siapkan Pesanan (Proses Masak);
+:Update Status ke "Sedang Disiapkan";
+
+|Sistem|
+:Simpan Status Order;
+:Kirim Update ke Customer;
+
+|Admin|
+:Pesanan Selesai Disiapkan;
+:Update Status ke "Siap Kirim";
+
+|Sistem|
+:Simpan Status Order;
+
+|Admin|
+if (Jenis Kurir?) then (Instant/Same-day via Biteship)
+    :Klik "Buat Order Biteship";
+    
+    |Sistem|
+    :Validasi Data Pengiriman;
+    :Siapkan Request Biteship;
+    
+    |Biteship|
+    :Create Order API;
+    :Assign Driver;
+    :Generate Waybill;
+    :Return Order Response;
+    
+    |Sistem|
+    :Simpan Biteship Order ID;
+    :Simpan Waybill ID;
+    :Simpan Tracking URL;
+    :Simpan Label URL;
+    
+    |Admin|
+    :Lihat Detail Pengiriman;
+    :Print Label Pengiriman;
+    :Serahkan ke Driver;
+    
+else (Regular Courier)
+    |Admin|
+    :Input Nomor Resi Manual;
+    :Pilih Kurir (JNE/JNT/dll);
+    
+    |Sistem|
+    :Simpan Tracking Number;
+    :Simpan Info Kurir;
+    
+    |Admin|
+    :Serahkan Paket ke Ekspedisi;
+endif
+
+|Sistem|
+:Update Status Order ke "Dalam Perjalanan";
+:Kirim Notifikasi dengan Link Tracking;
+
+|Admin|
+if (Perlu Monitor Pengiriman?) then (Ya)
+    :Buka Halaman Tracking;
+    
+    |Sistem|
+    |Biteship|
+    :Get Tracking Status;
+    :Return Tracking History;
+    
+    |Sistem|
+    :Tampilkan Timeline Pengiriman;
+    
+    |Admin|
+    :Monitor Progress;
+else (Tidak)
+endif
+
+|Sistem|
+note right: Customer konfirmasi terima
+:Terima Konfirmasi dari Customer;
+:Update Status ke "Selesai";
+
+:Catat ke Jurnal Umum;
+fork
+    :Debit: Kas/Bank;
+fork again
+    :Kredit: Pendapatan Penjualan;
+end fork
+
+:Update Buku Besar;
+:Update Neraca Saldo;
+
+stop
+
+@enduml

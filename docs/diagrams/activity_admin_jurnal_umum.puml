@@ -1,0 +1,89 @@
+@startuml Activity Diagram - Admin Jurnal Umum
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #2196F3
+skinparam ActivityDiamondBackgroundColor #FFF9C4
+skinparam ActivityDiamondBorderColor #FFC107
+skinparam ArrowColor #1976D2
+skinparam defaultFontSize 11
+
+title Activity Diagram - Admin Jurnal Umum
+
+|#87CEEB|Admin|
+|#E3F2FD|Sistem|
+
+start
+
+|Admin|
+:Akses Jurnal Umum;
+
+|Sistem|
+:Set Filter Default;
+:Query Journals;
+:Tampilkan Halaman;
+
+|Admin|
+:Lihat Jurnal Umum;
+
+if (Filter Periode?) then (Ya)
+  :Pilih Tanggal Range;
+  :Klik Filter;
+  
+  |Sistem|
+  :Query dalam Periode;
+  :Recalculate;
+  :Refresh Tabel;
+else (Tidak)
+endif
+
+if (Filter Akun?) then (Ya)
+  :Pilih Akun;
+  
+  |Sistem|
+  :Filter by Account;
+  :Tampilkan Hasil;
+else (Tidak)
+endif
+
+|Admin|
+:Analisis Jurnal;
+
+|Sistem|
+:Hitung Total Debit Kredit;
+
+if (Balance?) then (Ya)
+  :Tampilkan Balanced;
+else (Tidak)
+  :Tampilkan Unbalanced;
+endif
+
+|Admin|
+if (Lihat Detail?) then (Ya)
+  :Klik Baris;
+  
+  |Sistem|
+  :Tampilkan Detail;
+else (Tidak)
+endif
+
+if (Export?) then (Ya)
+  :Pilih Format;
+  
+  |Sistem|
+  :Generate File;
+  :Download;
+else (Tidak)
+endif
+
+if (Print?) then (Ya)
+  |Sistem|
+  :Generate Print View;
+  
+  |Admin|
+  :Print;
+else (Tidak)
+endif
+
+stop
+
+@enduml

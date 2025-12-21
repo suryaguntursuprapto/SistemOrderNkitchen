@@ -1,0 +1,248 @@
+@startuml ERD - Sistem Order Pempek N'Kitchen
+skinparam backgroundColor #FEFEFE
+skinparam linetype ortho
+
+title ERD - Sistem Order Pempek N'Kitchen
+
+' ========== ENTITIES ==========
+
+entity "users" as users {
+    *id : bigint <<PK>>
+    --
+    name : varchar(255)
+    username : varchar(255)
+    email : varchar(255) <<unique>>
+    password : varchar(255)
+    role : enum(admin,customer)
+    phone : varchar(20)
+    address : text
+    google_id : varchar(255)
+    email_verified_at : timestamp
+    remember_token : varchar(100)
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+entity "categories" as categories {
+    *id : bigint <<PK>>
+    --
+    name : varchar(255)
+    slug : varchar(255) <<unique>>
+    description : text
+    icon : varchar(255)
+    sort_order : int
+    is_active : boolean
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+entity "menus" as menus {
+    *id : bigint <<PK>>
+    --
+    #category_id : bigint <<FK>>
+    name : varchar(255)
+    description : text
+    price : decimal(10,2)
+    weight : int
+    image : varchar(255)
+    is_available : boolean
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+entity "orders" as orders {
+    *id : bigint <<PK>>
+    --
+    #user_id : bigint <<FK>>
+    order_number : varchar(50) <<unique>>
+    total_amount : decimal(12,2)
+    status : enum
+    shipping_cost : decimal(10,2)
+    tracking_number : varchar(100)
+    notes : text
+    delivery_address : text
+    phone : varchar(20)
+    recipient_name : varchar(255)
+    courier : varchar(50)
+    shipping_service : varchar(100)
+    destination_city : varchar(255)
+    destination_latitude : varchar(50)
+    destination_longitude : varchar(50)
+    biteship_order_id : varchar(100)
+    biteship_waybill_id : varchar(100)
+    biteship_tracking_url : text
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+entity "order_items" as order_items {
+    *id : bigint <<PK>>
+    --
+    #order_id : bigint <<FK>>
+    #menu_id : bigint <<FK>>
+    quantity : int
+    price : decimal(10,2)
+    notes : text
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+entity "payment_methods" as payment_methods {
+    *id : bigint <<PK>>
+    --
+    name : varchar(255)
+    type : varchar(50)
+    account_number : varchar(50)
+    account_name : varchar(255)
+    instructions : text
+    logo : varchar(255)
+    is_active : boolean
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+entity "payments" as payments {
+    *id : bigint <<PK>>
+    --
+    #order_id : bigint <<FK>>
+    #payment_method_id : bigint <<FK>>
+    amount : decimal(12,2)
+    status : varchar(50)
+    payment_proof : varchar(255)
+    notes : text
+    paid_at : timestamp
+    midtrans_transaction_id : varchar(100)
+    midtrans_order_id : varchar(100)
+    midtrans_response : json
+    payment_type : varchar(50)
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+entity "conversations" as conversations {
+    *id : bigint <<PK>>
+    --
+    #user_id : bigint <<FK>>
+    status : enum(open,closed)
+    last_message_at : timestamp
+    has_unread_admin : boolean
+    has_unread_user : boolean
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+entity "messages" as messages {
+    *id : bigint <<PK>>
+    --
+    #user_id : bigint <<FK>>
+    #conversation_id : bigint <<FK>>
+    #sender_id : bigint <<FK>>
+    sender_type : enum(user,admin,chatbot)
+    message : text
+    message_status : varchar(50)
+    is_read : boolean
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+entity "purchases" as purchases {
+    *id : bigint <<PK>>
+    --
+    purchase_date : date
+    supplier_name : varchar(255)
+    invoice_number : varchar(100)
+    total_amount : decimal(12,2)
+    status : varchar(50)
+    notes : text
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+entity "purchase_details" as purchase_details {
+    *id : bigint <<PK>>
+    --
+    #purchase_id : bigint <<FK>>
+    item_name : varchar(255)
+    quantity : decimal(10,2)
+    unit : varchar(50)
+    price_per_unit : decimal(10,2)
+    subtotal : decimal(12,2)
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+entity "chart_of_accounts" as coa {
+    *id : bigint <<PK>>
+    --
+    #parent_id : bigint <<FK>>
+    code : varchar(20) <<unique>>
+    name : varchar(255)
+    type : enum(asset,liability,equity,revenue,expense)
+    normal_balance : enum(debit,credit)
+    description : text
+    opening_balance : decimal(15,2)
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+entity "journals" as journals {
+    *id : bigint <<PK>>
+    --
+    date : date
+    description : varchar(255)
+    referenceable_id : bigint
+    referenceable_type : varchar(255)
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+entity "journal_transactions" as journal_trans {
+    *id : bigint <<PK>>
+    --
+    #journal_id : bigint <<FK>>
+    #chart_of_account_id : bigint <<FK>>
+    debit : decimal(15,2)
+    credit : decimal(15,2)
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+entity "expenses" as expenses {
+    *id : bigint <<PK>>
+    --
+    #user_id : bigint <<FK>>
+    #chart_of_account_id : bigint <<FK>>
+    description : varchar(255)
+    amount : decimal(12,2)
+    date : date
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+' ========== RELATIONSHIPS ==========
+
+users ||--o{ orders : "places"
+users ||--o{ conversations : "has"
+users ||--o{ messages : "sends"
+users ||--o{ expenses : "records"
+
+categories ||--o{ menus : "contains"
+
+orders ||--|{ order_items : "has"
+orders ||--o| payments : "has"
+
+menus ||--o{ order_items : "included in"
+
+payment_methods ||--o{ payments : "used for"
+
+conversations ||--o{ messages : "contains"
+
+purchases ||--|{ purchase_details : "has"
+
+coa ||--o{ coa : "parent of"
+coa ||--o{ journal_trans : "used in"
+coa ||--o{ expenses : "categorizes"
+
+journals ||--|{ journal_trans : "contains"
+
+@enduml

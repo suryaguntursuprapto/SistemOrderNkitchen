@@ -1,0 +1,79 @@
+@startuml Activity Diagram - Customer Menu
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #2196F3
+skinparam ActivityDiamondBackgroundColor #FFF9C4
+skinparam ActivityDiamondBorderColor #FFC107
+skinparam ArrowColor #1976D2
+skinparam defaultFontSize 11
+
+title Activity Diagram - Customer Melihat Menu
+
+|#E8F5E9|Customer|
+|#E3F2FD|Sistem|
+
+start
+
+|Customer|
+:Akses Halaman Menu;
+
+|Sistem|
+:Load Kategori & Menu;
+:Tampilkan Halaman Menu;
+
+|Customer|
+:Lihat Daftar Menu;
+
+if (Filter?) then (Ya)
+  :Pilih Kategori;
+  
+  |Sistem|
+  :Filter Menu;
+  :Tampilkan Hasil;
+else (Tidak)
+endif
+
+|Customer|
+:Pilih Menu;
+
+if (Lihat Detail?) then (Ya)
+  :Klik Menu;
+  
+  |Sistem|
+  :Load Detail Menu;
+  :Tampilkan Detail;
+  
+  |Customer|
+  if (Tersedia?) then (Ya)
+    if (Tambah?) then (Ya)
+      :Tentukan Jumlah;
+      :Klik Tambah;
+      
+      |Sistem|
+      :Simpan ke Cart;
+      :Update Counter;
+    else (Tidak)
+    endif
+  else (Habis)
+    :Lihat Status Habis;
+  endif
+else (Quick Add)
+  :Klik + pada Card;
+  
+  |Sistem|
+  :Tambah 1 ke Cart;
+endif
+
+|Customer|
+if (Selesai?) then (Ya)
+  :Klik Keranjang;
+  
+  |Sistem|
+  :Redirect ke Keranjang;
+else (Lanjut)
+  :Browse Menu;
+endif
+
+stop
+
+@enduml

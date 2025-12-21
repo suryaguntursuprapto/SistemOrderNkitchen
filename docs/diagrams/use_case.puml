@@ -1,0 +1,110 @@
+@startuml Use Case Diagram - Sistem Order Pempek N'Kitchen
+skinparam backgroundColor #FEFEFE
+skinparam usecaseBackgroundColor #E3F2FD
+skinparam usecaseBorderColor #1976D2
+skinparam actorBorderColor #388E3C
+skinparam packageBackgroundColor #F5F5F5
+skinparam packageBorderColor #9E9E9E
+skinparam ArrowColor #1565C0
+skinparam defaultFontSize 11
+
+title Use Case Diagram - Sistem Order Pempek N'Kitchen
+
+left to right direction
+
+' ========== ACTORS ==========
+actor "Customer" as Customer
+actor "Admin" as Admin
+actor "Midtrans" as Midtrans <<external>>
+actor "Biteship" as Biteship <<external>>
+
+' ========== SYSTEM ==========
+rectangle "Sistem Order Pempek N'Kitchen" {
+    
+    ' --- AUTENTIKASI ---
+    package "Autentikasi" {
+        usecase "Login" as UC1
+        usecase "Register" as UC2
+        usecase "Login Google" as UC3
+        usecase "Reset Password" as UC4
+        usecase "Verifikasi Email" as UC5
+    }
+    
+    ' --- CUSTOMER USE CASES ---
+    package "Fitur Customer" {
+        usecase "Lihat Dashboard" as UC10
+        usecase "Lihat Menu" as UC11
+        usecase "Lihat Detail Menu" as UC12
+        usecase "Tambah ke Keranjang" as UC13
+        usecase "Checkout Pesanan" as UC14
+        usecase "Pilih Kurir" as UC15
+        usecase "Bayar Pesanan" as UC16
+        usecase "Lihat Riwayat Pesanan" as UC17
+        usecase "Lacak Pengiriman" as UC18
+        usecase "Konfirmasi Diterima" as UC19
+        usecase "Chat dengan Admin" as UC20
+    }
+    
+    ' --- ADMIN USE CASES ---
+    package "Fitur Admin" {
+        usecase "Lihat Dashboard Admin" as UC30
+        usecase "Kelola Menu" as UC31
+        usecase "Kelola Kategori" as UC32
+        usecase "Kelola Pesanan" as UC33
+        usecase "Konfirmasi Pembayaran" as UC34
+        usecase "Buat Order Pengiriman" as UC35
+        usecase "Kelola Chat" as UC36
+    }
+    
+    ' --- LAPORAN ---
+    package "Laporan" {
+        usecase "Laporan Penjualan" as UC40
+        usecase "Jurnal Umum" as UC41
+        usecase "Buku Besar" as UC42
+        usecase "Neraca Saldo" as UC43
+        usecase "Laba Rugi" as UC44
+    }
+}
+
+' ========== CUSTOMER RELATIONSHIPS ==========
+Customer --> UC1
+Customer --> UC2
+Customer --> UC3
+Customer --> UC4
+Customer --> UC10
+Customer --> UC11
+Customer --> UC14
+Customer --> UC16
+Customer --> UC17
+Customer --> UC18
+Customer --> UC19
+Customer --> UC20
+
+' ========== ADMIN RELATIONSHIPS ==========
+Admin --> UC1
+Admin --> UC30
+Admin --> UC31
+Admin --> UC32
+Admin --> UC33
+Admin --> UC36
+Admin --> UC40
+Admin --> UC41
+Admin --> UC42
+Admin --> UC43
+Admin --> UC44
+
+' ========== EXTENDS & INCLUDES ==========
+UC11 ..> UC12 : <<include>>
+UC12 ..> UC13 : <<extend>>
+UC14 ..> UC15 : <<include>>
+UC14 ..> UC16 : <<include>>
+UC33 ..> UC34 : <<include>>
+UC33 ..> UC35 : <<extend>>
+
+' ========== EXTERNAL SYSTEMS ==========
+UC16 --> Midtrans
+UC15 --> Biteship
+UC35 --> Biteship
+UC18 --> Biteship
+
+@enduml

@@ -1,0 +1,92 @@
+@startuml Activity Diagram - Customer Pemesanan
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #2196F3
+skinparam ActivityDiamondBackgroundColor #FFF9C4
+skinparam ActivityDiamondBorderColor #FFC107
+skinparam ArrowColor #1976D2
+skinparam defaultFontSize 11
+
+title Activity Diagram - Customer Pemesanan
+
+|#E8F5E9|Customer|
+|#E3F2FD|Sistem|
+|#F3E5F5|Biteship|
+
+start
+
+|Customer|
+:Buka Keranjang;
+
+|Sistem|
+:Load Cart;
+:Tampilkan Keranjang;
+
+|Customer|
+:Review Item;
+
+if (Kosong?) then (Ya)
+  |Sistem|
+  :Redirect ke Menu;
+  stop
+else (Ada)
+endif
+
+|Customer|
+:Klik Checkout;
+
+|Sistem|
+:Tampilkan Form Checkout;
+
+|Customer|
+:Isi Data Penerima;
+:Isi Alamat;
+
+|Sistem|
+|Biteship|
+:Cari Area Tujuan;
+
+|Sistem|
+:Tampilkan Dropdown Area;
+
+|Customer|
+:Pilih Area;
+
+|Sistem|
+|Biteship|
+:Get Ongkos Kirim;
+
+|Sistem|
+:Tampilkan Opsi Kurir;
+
+|Customer|
+:Pilih Kurir;
+
+|Sistem|
+:Hitung Total;
+:Tampilkan Ringkasan;
+
+|Customer|
+if (Konfirmasi?) then (Ya)
+  :Klik Buat Pesanan;
+  
+  |Sistem|
+  :Create Order;
+  :Create Payment;
+  :Clear Cart;
+  :Redirect Pembayaran;
+  
+  |Customer|
+  if (Metode?) then (Transfer)
+    :Upload Bukti;
+  else (Midtrans)
+    :Bayar via Midtrans;
+  endif
+else (Batal)
+  |Sistem|
+  :Kembali;
+endif
+
+stop
+
+@enduml

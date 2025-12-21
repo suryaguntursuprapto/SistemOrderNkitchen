@@ -1,0 +1,223 @@
+@startuml Activity Diagram - Proses Pemesanan Customer
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #2196F3
+skinparam ActivityDiamondBackgroundColor #FFF9C4
+skinparam ActivityDiamondBorderColor #FFC107
+skinparam ArrowColor #1976D2
+skinparam NoteBackgroundColor #E8F5E9
+skinparam NoteBorderColor #4CAF50
+
+|#E3F2FD|Customer|
+|#FFF3E0|Sistem|
+|#E8F5E9|Admin|
+|#FFF8E1|Midtrans|
+|#F3E5F5|Biteship|
+
+start
+
+|Customer|
+:Login ke Sistem;
+
+:Lihat Katalog Menu;
+
+|Sistem|
+:Tampilkan Daftar Menu & Kategori;
+
+|Customer|
+:Pilih Menu;
+:Lihat Detail Menu;
+
+if (Ingin Tambah ke Keranjang?) then (Ya)
+    :Tentukan Jumlah;
+    :Tambah ke Keranjang;
+    
+    |Sistem|
+    :Simpan ke Session Cart;
+    
+    |Customer|
+    if (Lanjut Belanja?) then (Ya)
+        :Lihat Katalog Menu;
+        note right: Kembali ke browsing
+    else (Tidak)
+        :Buka Halaman Keranjang;
+    endif
+else (Tidak)
+    :Lihat Katalog Menu;
+    stop
+endif
+
+|Customer|
+:Review Keranjang;
+
+if (Keranjang OK?) then (Ya)
+    :Klik Checkout;
+else (Tidak)
+    :Edit/Hapus Item;
+    :Review Keranjang;
+endif
+
+|Sistem|
+:Tampilkan Form Checkout;
+
+|Customer|
+:Isi Nama Penerima;
+:Isi Nomor Telepon;
+:Isi Alamat Lengkap;
+
+|Sistem|
+|Biteship|
+:Cari Lokasi Tujuan;
+:Return Koordinat & Area;
+
+|Sistem|
+:Tampilkan Hasil Pencarian Alamat;
+
+|Customer|
+:Pilih Alamat dari Dropdown;
+
+|Sistem|
+|Biteship|
+:Request Ongkos Kirim;
+:Calculate Shipping Cost;
+:Return Daftar Kurir & Harga;
+
+|Sistem|
+:Tampilkan Opsi Kurir;
+
+|Customer|
+:Pilih Kurir & Layanan;
+:Tambah Catatan (opsional);
+
+|Sistem|
+:Hitung Total (Subtotal + Ongkir);
+:Tampilkan Ringkasan Pesanan;
+
+|Customer|
+if (Konfirmasi Pesanan?) then (Ya)
+    :Klik Buat Pesanan;
+else (Tidak)
+    :Edit Pesanan;
+    stop
+endif
+
+|Sistem|
+:Generate Nomor Order;
+:Simpan Order ke Database;
+:Simpan Order Items;
+:Buat Payment Record (pending);
+:Redirect ke Halaman Pembayaran;
+
+|Customer|
+:Lihat Detail Pembayaran;
+
+if (Metode Pembayaran?) then (Transfer Manual)
+    :Pilih Bank Tujuan;
+    :Transfer via Bank;
+    :Upload Bukti Transfer;
+    
+    |Sistem|
+    :Simpan Bukti Pembayaran;
+    :Update Status Payment -> pending_verification;
+    :Notifikasi Admin;
+    
+    |Admin|
+    :Review Bukti Pembayaran;
+    
+    if (Pembayaran Valid?) then (Ya)
+        :Konfirmasi Pembayaran;
+        
+        |Sistem|
+        :Update Status Payment -> paid;
+        :Update Status Order -> confirmed;
+    else (Tidak)
+        :Tolak Pembayaran;
+        
+        |Sistem|
+        :Notifikasi Customer;
+        
+        |Customer|
+        :Upload Ulang Bukti;
+    endif
+    
+else (Midtrans)
+    
+    |Sistem|
+    |Midtrans|
+    :Create Transaction;
+    :Return Snap Token;
+    
+    |Sistem|
+    :Tampilkan Popup Midtrans;
+    
+    |Customer|
+    :Pilih Metode Pembayaran;
+    :Lakukan Pembayaran;
+    
+    |Midtrans|
+    :Process Payment;
+    :Send Callback;
+    
+    |Sistem|
+    :Receive Callback;
+    :Update Payment Status;
+    :Update Order Status;
+endif
+
+|Admin|
+:Lihat Order Baru;
+:Update Status -> preparing;
+
+|Sistem|
+:Simpan Status Order;
+
+|Admin|
+:Siapkan Pesanan;
+:Update Status -> ready;
+
+if (Kurir Instant (GoSend)?) then (Ya)
+    :Klik Buat Order Biteship;
+    
+    |Sistem|
+    |Biteship|
+    :Create Shipping Order;
+    :Return Waybill & Tracking;
+    
+    |Sistem|
+    :Simpan Biteship Order ID;
+    :Simpan Tracking URL;
+    
+else (Tidak - Regular Courier)
+    :Input Nomor Resi Manual;
+    
+    |Sistem|
+    :Simpan Tracking Number;
+endif
+
+|Admin|
+:Serahkan ke Kurir;
+
+|Customer|
+:Lihat Status Pesanan;
+:Lacak Pengiriman;
+
+|Sistemal|
+|Biteship|
+:Get Tracking Status;
+:Return Tracking History;
+
+|Sistem|
+:Tampilkan Status Pengiriman;
+
+|Customer|
+:Terima Pesanan;
+:Konfirmasi Pesanan Diterima;
+
+|Sistem|
+:Update Status -> delivered;
+:Catat Jurnal Penjualan;
+:Update Buku Besar;
+
+stop
+
+@enduml

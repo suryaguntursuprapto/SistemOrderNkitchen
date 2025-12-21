@@ -1,0 +1,163 @@
+@startuml Activity Diagram - Pembayaran
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #2196F3
+skinparam ActivityDiamondBackgroundColor #FFF9C4
+skinparam ActivityDiamondBorderColor #FFC107
+
+title Activity Diagram - Proses Pembayaran
+
+|#E8F5E9|Customer|
+|#E3F2FD|Sistem|
+|#FFF3E0|Admin|
+|#F3E5F5|Midtrans|
+
+start
+
+|Customer|
+:Selesaikan Checkout;
+
+|Sistem|
+:Buat Order Baru;
+:Buat Payment Record (pending);
+:Redirect ke Halaman Pembayaran;
+
+|Customer|
+:Lihat Halaman Pembayaran;
+:Lihat Ringkasan Pesanan;
+
+if (Pilih Metode Pembayaran?) then (Transfer Manual)
+    
+    |Sistem|
+    :Tampilkan Daftar Rekening Bank;
+    
+    |Customer|
+    :Pilih Bank Tujuan;
+    :Catat Nomor Rekening;
+    :Transfer via Mobile/Internet Banking;
+    :Ambil Screenshot Bukti Transfer;
+    :Upload Bukti Transfer;
+    
+    |Sistem|
+    :Validasi File (format gambar);
+    :Simpan File Bukti;
+    :Update Payment Status -> pending_verification;
+    :Kirim Notifikasi ke Admin;
+    
+    |Admin|
+    :Lihat Notifikasi Pembayaran Baru;
+    :Buka Detail Pesanan;
+    :Lihat Bukti Transfer;
+    :Cek Rekening Koran/Mutasi;
+    
+    if (Transfer Valid?) then (Ya)
+        :Konfirmasi Pembayaran;
+        
+        |Sistem|
+        :Update Payment Status -> paid;
+        :Update Order Status -> confirmed;
+        :Catat Tanggal Pembayaran;
+        :Kirim Notifikasi ke Customer;
+        
+        |Customer|
+        :Terima Notifikasi Pembayaran Sukses;
+        
+    else (Tidak)
+        :Tolak dengan Alasan;
+        
+        |Sistem|
+        :Update Payment Status -> rejected;
+        :Kirim Notifikasi Penolakan ke Customer;
+        
+        |Customer|
+        :Terima Notifikasi Pembayaran Ditolak;
+        :Lihat Alasan Penolakan;
+        
+        if (Ingin Coba Lagi?) then (Ya)
+            :Upload Bukti Transfer Baru;
+        else (Tidak)
+            :Batalkan Pesanan;
+            stop
+        endif
+    endif
+    
+else (Midtrans Payment Gateway)
+    
+    |Customer|
+    :Klik "Bayar via Midtrans";
+    
+    |Sistem|
+    :Siapkan Data Transaksi;
+    :Generate Order ID Midtrans;
+    
+    |Midtrans|
+    :Create Transaction;
+    :Generate Snap Token;
+    :Return Token;
+    
+    |Sistem|
+    :Simpan Snap Token;
+    :Tampilkan Popup Midtrans;
+    
+    |Customer|
+    :Pilih Metode Pembayaran;
+    note right
+        - Virtual Account Bank
+        - E-Wallet (GoPay, ShopeePay)
+        - Kartu Kredit
+        - Indomaret/Alfamart
+    end note
+    
+    |Midtrans|
+    :Generate Payment Code/QR;
+    
+    |Customer|
+    :Lakukan Pembayaran;
+    
+    |Midtrans|
+    :Process Payment;
+    :Verify Payment;
+    
+    if (Pembayaran Berhasil?) then (Ya)
+        :Send Callback (settlement);
+        
+        |Sistem|
+        :Receive Callback;
+        :Validasi Signature;
+        :Update Payment Status -> paid;
+        :Simpan Transaction ID;
+        :Simpan Payment Type;
+        :Update Order Status -> confirmed;
+        :Kirim Notifikasi ke Customer;
+        
+        |Customer|
+        :Redirect ke Halaman Sukses;
+        :Lihat Konfirmasi Pembayaran;
+        
+    else (Tidak/Pending)
+        :Send Callback (pending/expire/cancel);
+        
+        |Sistem|
+        :Receive Callback;
+        :Update Payment Status;
+        
+        if (Status) then (pending)
+            |Customer|
+            :Lihat Status "Menunggu Pembayaran";
+            note right: Customer harus menyelesaikan pembayaran
+        else (expire/cancel)
+            |Customer|
+            :Lihat Status "Pembayaran Gagal";
+            :Pilih Ulang Metode Pembayaran;
+        endif
+    endif
+    
+endif
+
+|Sistem|
+:Catat ke Jurnal;
+:Update Laporan Keuangan;
+
+stop
+
+@enduml

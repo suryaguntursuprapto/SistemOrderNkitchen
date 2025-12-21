@@ -1,0 +1,92 @@
+@startuml Activity Diagram - Admin Chat
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #2196F3
+skinparam ActivityDiamondBackgroundColor #FFF9C4
+skinparam ActivityDiamondBorderColor #FFC107
+skinparam ArrowColor #1976D2
+skinparam defaultFontSize 11
+
+title Activity Diagram - Admin Mengelola Chat
+
+|#87CEEB|Admin|
+|#E3F2FD|Sistem|
+|#E8F5E9|Customer|
+
+start
+
+|Admin|
+:Akses Menu Chat;
+
+|Sistem|
+:Query Conversations;
+:Tampilkan Daftar;
+
+|Admin|
+if (Pesan Baru?) then (Ya)
+  :Lihat Badge Unread;
+else (Tidak)
+endif
+
+:Pilih Conversation;
+
+|Sistem|
+:Load Riwayat Pesan;
+:Mark as Read;
+:Tampilkan Chat;
+
+|Admin|
+:Baca Pesan Customer;
+
+if (Balas?) then (Ya)
+  :Ketik Balasan;
+  :Klik Kirim;
+  
+  |Sistem|
+  :Simpan Pesan;
+  :Notifikasi Customer;
+  
+  |Customer|
+  :Terima Notifikasi;
+else (Tidak)
+endif
+
+|Admin|
+if (Pindah Customer?) then (Ya)
+  :Klik Customer Lain;
+  
+  |Sistem|
+  :Load Conversation Baru;
+else (Tidak)
+endif
+
+if (Hapus Chat?) then (Ya)
+  :Konfirmasi Hapus;
+  
+  |Sistem|
+  :Delete Messages;
+  :Reset Conversation;
+else (Tidak)
+endif
+
+|Sistem|
+:Auto-Refresh Polling;
+
+|Customer|
+if (Kirim Pesan?) then (Ya)
+  :Kirim Pesan;
+  
+  |Sistem|
+  :Push ke Admin;
+  
+  |Admin|
+  :Terima Pesan Baru;
+else (Tidak)
+endif
+
+|Admin|
+:Selesai Kelola Chat;
+
+stop
+
+@enduml

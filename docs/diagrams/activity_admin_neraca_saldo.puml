@@ -1,0 +1,89 @@
+@startuml Activity Diagram - Admin Neraca Saldo
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #2196F3
+skinparam ActivityDiamondBackgroundColor #FFF9C4
+skinparam ActivityDiamondBorderColor #FFC107
+skinparam ArrowColor #1976D2
+skinparam defaultFontSize 11
+
+title Activity Diagram - Admin Neraca Saldo
+
+|#87CEEB|Admin|
+|#E3F2FD|Sistem|
+
+start
+
+|Admin|
+:Akses Neraca Saldo;
+
+|Sistem|
+:Set Default Tanggal;
+:Query Semua Akun;
+:Calculate Saldo per Akun;
+:Tampilkan Halaman;
+
+|Admin|
+:Lihat Neraca Saldo;
+
+if (Ubah Tanggal?) then (Ya)
+  :Pilih Tanggal;
+  :Klik Tampilkan;
+  
+  |Sistem|
+  :Query s/d Tanggal;
+  :Recalculate Saldo;
+  :Refresh;
+else (Tidak)
+endif
+
+|Admin|
+:Review Neraca Saldo;
+
+|Sistem|
+:Hitung Total Debit Kredit;
+
+if (Balance?) then (Ya)
+  :Tampilkan Balanced;
+  
+  |Admin|
+  :Neraca Valid;
+else (Tidak)
+  :Tampilkan Unbalanced;
+  
+  |Admin|
+  :Ada Kesalahan;
+  
+  if (Trace?) then (Ya)
+    :Klik Lihat Jurnal;
+    
+    |Sistem|
+    :Redirect Jurnal;
+  else (Tidak)
+  endif
+endif
+
+|Admin|
+:Analisis per Kategori;
+
+if (Export?) then (Ya)
+  :Pilih Format;
+  
+  |Sistem|
+  :Generate File;
+  :Download;
+else (Tidak)
+endif
+
+if (Print?) then (Ya)
+  |Sistem|
+  :Generate Print View;
+  
+  |Admin|
+  :Print;
+else (Tidak)
+endif
+
+stop
+
+@enduml

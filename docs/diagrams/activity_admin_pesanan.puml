@@ -1,0 +1,104 @@
+@startuml Activity Diagram - Admin Pesanan
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #2196F3
+skinparam ActivityDiamondBackgroundColor #FFF9C4
+skinparam ActivityDiamondBorderColor #FFC107
+skinparam ArrowColor #1976D2
+skinparam defaultFontSize 11
+
+title Activity Diagram - Admin Mengelola Pesanan
+
+|#87CEEB|Admin|
+|#E3F2FD|Sistem|
+|#F3E5F5|Biteship|
+
+start
+
+|Admin|
+:Akses Menu Pesanan;
+
+|Sistem|
+:Query Pesanan;
+:Tampilkan Daftar;
+
+|Admin|
+if (Filter?) then (Ya)
+  :Pilih Status;
+  
+  |Sistem|
+  :Filter & Tampilkan;
+else (Tidak)
+endif
+
+|Admin|
+:Pilih Pesanan;
+
+|Sistem|
+:Load Detail;
+:Tampilkan Detail;
+
+|Admin|
+if (Status?) then (Pending)
+  if (Bukti Valid?) then (Ya)
+    :Konfirmasi Bayar;
+    
+    |Sistem|
+    :Update Confirmed;
+  else (Tidak)
+    :Tolak Bayar;
+  endif
+
+else if (Confirmed) then
+  :Klik Siapkan;
+  
+  |Sistem|
+  :Update Preparing;
+
+else if (Preparing) then
+  :Klik Siap Kirim;
+  
+  |Sistem|
+  :Update Ready;
+  
+  |Admin|
+  if (Instant?) then (Ya)
+    :Klik Buat Biteship;
+    
+    |Sistem|
+    |Biteship|
+    :Create Order;
+    
+    |Sistem|
+    :Simpan Tracking;
+  else (Regular)
+    :Input Resi;
+    
+    |Sistem|
+    :Simpan Resi;
+  endif
+  
+  |Sistem|
+  :Kirim Notifikasi;
+
+else if (Delivered) then
+  :Klik Lacak;
+  
+  |Sistem|
+  |Biteship|
+  :Get Tracking;
+  
+  |Sistem|
+  :Tampilkan Timeline;
+
+else (Selesai)
+  |Admin|
+  :Lihat Detail;
+endif
+
+|Admin|
+:Kembali ke Daftar;
+
+stop
+
+@enduml

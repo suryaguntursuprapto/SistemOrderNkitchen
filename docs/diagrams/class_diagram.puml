@@ -1,0 +1,365 @@
+@startuml Class Diagram - Sistem Order Pempek N'Kitchen
+skinparam backgroundColor #FEFEFE
+skinparam classBackgroundColor #E3F2FD
+skinparam classBorderColor #1976D2
+skinparam classArrowColor #1565C0
+skinparam stereotypeCBackgroundColor #4CAF50
+skinparam stereotypeCBorderColor #2E7D32
+skinparam packageBackgroundColor #F5F5F5
+skinparam packageBorderColor #9E9E9E
+
+' ==================== USER & AUTH ====================
+package "User & Authentication" #E8F5E9 {
+    class User {
+        -id: int
+        -name: string
+        -username: string
+        -email: string
+        -password: string
+        -role: enum['admin', 'customer']
+        -phone: string
+        -address: text
+        -google_id: string
+        -email_verified_at: timestamp
+        -remember_token: string
+        -created_at: timestamp
+        -updated_at: timestamp
+        --
+        +isAdmin(): bool
+        +isCustomer(): bool
+        +orders(): HasMany<Order>
+        +messages(): HasMany<Message>
+        +conversations(): HasMany<Conversation>
+    }
+}
+
+' ==================== MENU & CATEGORY ====================
+package "Menu Management" #FFF3E0 {
+    class Category {
+        -id: int
+        -name: string
+        -slug: string
+        -description: text
+        -icon: string
+        -sort_order: int
+        -is_active: boolean
+        -created_at: timestamp
+        -updated_at: timestamp
+        --
+        +menus(): HasMany<Menu>
+        +scopeActive(query): Builder
+        +scopeOrdered(query): Builder
+        +getMenuCountAttribute(): int
+    }
+    
+    class Menu {
+        -id: int
+        -name: string
+        -description: text
+        -price: decimal(10,2)
+        -weight: int
+        -image: string
+        -category: string
+        -category_id: int
+        -is_available: boolean
+        -created_at: timestamp
+        -updated_at: timestamp
+        --
+        +category(): BelongsTo<Category>
+        +orderItems(): HasMany<OrderItem>
+        +scopeAvailable(query): Builder
+        +getFormattedPriceAttribute(): string
+    }
+}
+
+' ==================== ORDER MANAGEMENT ====================
+package "Order Management" #E1F5FE {
+    class Order {
+        -id: int
+        -user_id: int
+        -order_number: string
+        -total_amount: decimal(12,2)
+        -status: enum
+        -shipping_cost: decimal(10,2)
+        -tracking_number: string
+        -notes: text
+        -delivery_address: text
+        -phone: string
+        -recipient_name: string
+        -courier: string
+        -shipping_service: string
+        -city_id: string
+        -destination_city: string
+        -destination_district: string
+        -destination_province: string
+        -destination_postal_code: string
+        -destination_latitude: string
+        -destination_longitude: string
+        -total_weight: int
+        -biteship_order_id: string
+        -biteship_waybill_id: string
+        -biteship_status: string
+        -biteship_label_url: string
+        -biteship_tracking_url: string
+        -created_at: timestamp
+        -updated_at: timestamp
+        --
+        <<const>> STATUS_PENDING
+        <<const>> STATUS_CONFIRMED
+        <<const>> STATUS_PREPARING
+        <<const>> STATUS_READY
+        <<const>> STATUS_DELIVERED
+        <<const>> STATUS_CANCELLED
+        --
+        +user(): BelongsTo<User>
+        +payment(): HasOne<Payment>
+        +payments(): HasMany<Payment>
+        +orderItems(): HasMany<OrderItem>
+        +journal(): MorphOne<Journal>
+        +getStatusLabelAttribute(): string
+        +getFormattedTotalAttribute(): string
+        +getStatuses(): array
+    }
+    
+    class OrderItem {
+        -id: int
+        -order_id: int
+        -menu_id: int
+        -quantity: int
+        -price: decimal(10,2)
+        -notes: text
+        -created_at: timestamp
+        -updated_at: timestamp
+        --
+        +order(): BelongsTo<Order>
+        +menu(): BelongsTo<Menu>
+        +getSubtotalAttribute(): decimal
+        +getFormattedSubtotalAttribute(): string
+    }
+}
+
+' ==================== PAYMENT MANAGEMENT ====================
+package "Payment Management" #F3E5F5 {
+    class Payment {
+        -id: int
+        -order_id: int
+        -payment_method_id: int
+        -amount: decimal(12,2)
+        -status: string
+        -payment_proof: string
+        -notes: text
+        -paid_at: timestamp
+        -midtrans_transaction_id: string
+        -midtrans_order_id: string
+        -midtrans_response: json
+        -payment_type: string
+        -midtrans_paid_at: timestamp
+        -created_at: timestamp
+        -updated_at: timestamp
+        --
+        +order(): BelongsTo<Order>
+        +paymentMethod(): BelongsTo<PaymentMethod>
+        +isMidtransPayment(): bool
+        +getMidtransStatus(): string|null
+    }
+    
+    class PaymentMethod {
+        -id: int
+        -name: string
+        -type: string
+        -account_number: string
+        -account_name: string
+        -instructions: text
+        -logo: string
+        -is_active: boolean
+        -created_at: timestamp
+        -updated_at: timestamp
+        --
+        +payments(): HasMany<Payment>
+        +scopeActive(query): Builder
+    }
+}
+
+' ==================== CHAT/MESSAGE ====================
+package "Communication" #FFF8E1 {
+    class Conversation {
+        -id: int
+        -user_id: int
+        -status: enum['open', 'closed']
+        -last_message_at: timestamp
+        -has_unread_admin: boolean
+        -has_unread_user: boolean
+        -created_at: timestamp
+        -updated_at: timestamp
+        --
+        <<const>> STATUS_OPEN
+        <<const>> STATUS_CLOSED
+        --
+        +user(): BelongsTo<User>
+        +messages(): HasMany<Message>
+        +lastMessage(): HasOne<Message>
+        +getOrCreateForUser(userId): Conversation
+        +touchLastMessage(): void
+        +scopeOpen(query): Builder
+        +scopeUnreadByAdmin(query): Builder
+    }
+    
+    class Message {
+        -id: int
+        -user_id: int
+        -conversation_id: int
+        -sender_type: enum['user', 'admin', 'chatbot']
+        -sender_id: int
+        -subject: string
+        -message: text
+        -message_status: string
+        -is_read: boolean
+        -admin_reply: text
+        -replied_at: timestamp
+        -created_at: timestamp
+        -updated_at: timestamp
+        --
+        <<const>> SENDER_USER
+        <<const>> SENDER_ADMIN
+        <<const>> SENDER_CHATBOT
+        <<const>> STATUS_SENT
+        <<const>> STATUS_DELIVERED
+        <<const>> STATUS_READ
+        --
+        +user(): BelongsTo<User>
+        +conversation(): BelongsTo<Conversation>
+        +sender(): BelongsTo<User>
+        +markAsRead(): void
+        +isFromUser(): bool
+        +isFromAdmin(): bool
+        +isFromChatbot(): bool
+    }
+}
+
+' ==================== PURCHASE MANAGEMENT ====================
+package "Purchase Management" #FCE4EC {
+    class Purchase {
+        -id: int
+        -purchase_date: date
+        -supplier_name: string
+        -invoice_number: string
+        -total_amount: decimal(12,2)
+        -status: string
+        -notes: text
+        -created_at: timestamp
+        -updated_at: timestamp
+        --
+        +purchaseDetails(): HasMany<PurchaseDetail>
+        +journal(): MorphOne<Journal>
+    }
+    
+    class PurchaseDetail {
+        -id: int
+        -purchase_id: int
+        -item_name: string
+        -quantity: decimal(10,2)
+        -unit: string
+        -price_per_unit: decimal(10,2)
+        -subtotal: decimal(12,2)
+        -created_at: timestamp
+        -updated_at: timestamp
+        --
+        +purchase(): BelongsTo<Purchase>
+    }
+}
+
+' ==================== ACCOUNTING ====================
+package "Accounting" #E0F2F1 {
+    class ChartOfAccount {
+        -id: int
+        -code: string
+        -name: string
+        -type: string
+        -normal_balance: string
+        -parent_id: int
+        -description: text
+        -opening_balance: decimal(15,2)
+        -created_at: timestamp
+        -updated_at: timestamp
+        --
+        +parent(): BelongsTo<ChartOfAccount>
+        +children(): HasMany<ChartOfAccount>
+        +journalTransactions(): HasMany<JournalTransaction>
+    }
+    
+    class Journal {
+        -id: int
+        -date: date
+        -description: string
+        -referenceable_id: int
+        -referenceable_type: string
+        -created_at: timestamp
+        -updated_at: timestamp
+        --
+        +transactions(): HasMany<JournalTransaction>
+        +referenceable(): MorphTo
+    }
+    
+    class JournalTransaction {
+        -id: int
+        -journal_id: int
+        -chart_of_account_id: int
+        -debit: decimal(15,2)
+        -credit: decimal(15,2)
+        -created_at: timestamp
+        -updated_at: timestamp
+        --
+        +journal(): BelongsTo<Journal>
+        +chartOfAccount(): BelongsTo<ChartOfAccount>
+    }
+    
+    class Expense {
+        -id: int
+        -description: string
+        -amount: decimal(12,2)
+        -date: date
+        -user_id: int
+        -chart_of_account_id: int
+        -created_at: timestamp
+        -updated_at: timestamp
+        --
+        +user(): BelongsTo<User>
+        +chartOfAccount(): BelongsTo<ChartOfAccount>
+        +journal(): MorphOne<Journal>
+    }
+}
+
+' ==================== RELATIONSHIPS ====================
+' User relationships
+User "1" -- "0..*" Order : places >
+User "1" -- "0..*" Message : sends >
+User "1" -- "0..*" Conversation : has >
+User "1" -- "0..*" Expense : records >
+
+' Category & Menu
+Category "1" -- "0..*" Menu : contains >
+
+' Order relationships
+Order "1" -- "0..*" OrderItem : contains >
+Order "1" -- "0..1" Payment : has >
+Order "1" -- "0..1" Journal : generates >
+OrderItem "0..*" -- "1" Menu : references >
+
+' Payment relationships
+Payment "0..*" -- "1" PaymentMethod : uses >
+
+' Conversation & Message
+Conversation "1" -- "0..*" Message : contains >
+
+' Purchase relationships
+Purchase "1" -- "0..*" PurchaseDetail : contains >
+Purchase "1" -- "0..1" Journal : generates >
+
+' Accounting relationships
+ChartOfAccount "1" -- "0..*" ChartOfAccount : parent of >
+ChartOfAccount "1" -- "0..*" JournalTransaction : used in >
+Journal "1" -- "0..*" JournalTransaction : contains >
+Expense "0..*" -- "1" ChartOfAccount : categorized by >
+Expense "1" -- "0..1" Journal : generates >
+
+@enduml

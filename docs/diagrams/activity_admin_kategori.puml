@@ -1,0 +1,90 @@
+@startuml Activity Diagram - Admin Kategori
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #2196F3
+skinparam ActivityDiamondBackgroundColor #FFF9C4
+skinparam ActivityDiamondBorderColor #FFC107
+skinparam ArrowColor #1976D2
+skinparam defaultFontSize 11
+
+title Activity Diagram - Admin Mengelola Kategori
+
+|#87CEEB|Admin|
+|#E3F2FD|Sistem|
+
+start
+
+|Admin|
+:Akses Menu Kategori;
+
+|Sistem|
+:Query Kategori;
+:Tampilkan Daftar;
+
+|Admin|
+if (Aksi?) then (Tambah)
+  :Klik Tambah;
+  
+  |Sistem|
+  :Tampilkan Form;
+  
+  |Admin|
+  :Isi Data Kategori;
+  :Klik Simpan;
+  
+  |Sistem|
+  if (Valid?) then (Ya)
+    :Generate Slug;
+    :Simpan Kategori;
+    :Tampilkan Sukses;
+  else (Tidak)
+    :Tampilkan Error;
+  endif
+
+else if (Edit) then
+  :Klik Edit;
+  
+  |Sistem|
+  :Load Data;
+  :Tampilkan Form;
+  
+  |Admin|
+  :Edit Data;
+  :Klik Update;
+  
+  |Sistem|
+  if (Valid?) then (Ya)
+    :Update Kategori;
+    :Tampilkan Sukses;
+  else (Tidak)
+    :Tampilkan Error;
+  endif
+
+else if (Hapus) then
+  :Klik Hapus;
+  
+  |Sistem|
+  :Cek Jumlah Menu;
+  
+  if (Ada Menu?) then (Ya)
+    :Tampilkan Warning;
+  else (Kosong)
+    |Admin|
+    :Konfirmasi;
+    
+    |Sistem|
+    :Delete Kategori;
+    :Tampilkan Sukses;
+  endif
+
+else (Toggle)
+  :Klik Toggle;
+  
+  |Sistem|
+  :Update Status;
+  :Refresh;
+endif
+
+stop
+
+@enduml

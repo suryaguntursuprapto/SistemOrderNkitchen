@@ -1,0 +1,81 @@
+@startuml Activity Diagram - Customer Chat
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #2196F3
+skinparam ActivityDiamondBackgroundColor #FFF9C4
+skinparam ActivityDiamondBorderColor #FFC107
+skinparam ArrowColor #1976D2
+skinparam defaultFontSize 11
+
+title Activity Diagram - Customer Chat
+
+|#E8F5E9|Customer|
+|#E3F2FD|Sistem|
+|#87CEEB|Admin|
+
+start
+
+|Customer|
+:Akses Menu Chat;
+
+|Sistem|
+if (Ada Conversation?) then (Ya)
+  :Load Conversation;
+else (Tidak)
+  :Buat Conversation Baru;
+endif
+
+:Load Riwayat Pesan;
+:Mark as Read;
+:Tampilkan Chat;
+
+|Customer|
+:Lihat Riwayat Pesan;
+
+if (Kirim Pesan?) then (Ya)
+  :Ketik Pesan;
+  :Klik Kirim;
+  
+  |Sistem|
+  :Simpan Pesan;
+  :Update Conversation;
+  :Notifikasi Admin;
+  
+  |Admin|
+  :Terima Notifikasi;
+else (Tidak)
+endif
+
+|Sistem|
+:Auto-Refresh Polling;
+
+|Admin|
+if (Balas?) then (Ya)
+  :Ketik Balasan;
+  :Kirim;
+  
+  |Sistem|
+  :Simpan Pesan Admin;
+  :Push ke Customer;
+  
+  |Customer|
+  :Terima Pesan Baru;
+else (Belum)
+endif
+
+|Customer|
+if (Hapus Chat?) then (Ya)
+  :Konfirmasi;
+  
+  |Sistem|
+  :Delete Messages;
+  :Reset Conversation;
+else (Tidak)
+endif
+
+|Customer|
+:Selesai Chat;
+
+stop
+
+@enduml

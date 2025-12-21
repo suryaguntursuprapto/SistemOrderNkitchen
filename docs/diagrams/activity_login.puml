@@ -1,0 +1,83 @@
+@startuml Activity Diagram - Login
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #2196F3
+skinparam ActivityDiamondBackgroundColor #FFF9C4
+skinparam ActivityDiamondBorderColor #FFC107
+skinparam ArrowColor #1976D2
+skinparam defaultFontSize 11
+
+title Activity Diagram - Proses Login
+
+|#E8F5E9|User|
+|#E3F2FD|Sistem|
+
+start
+
+|User|
+:Akses Halaman Login;
+
+|Sistem|
+:Tampilkan Form Login;
+
+|User|
+if (Metode?) then (Email/Password)
+  :Masukkan Email & Password;
+  :Klik Login;
+  
+  |Sistem|
+  :Validasi Input;
+  
+  if (Valid?) then (Ya)
+    :Cari User;
+    
+    if (Ditemukan?) then (Ya)
+      :Verifikasi Password;
+      
+      if (Benar?) then (Ya)
+        if (Email Terverifikasi?) then (Ya)
+          :Buat Session;
+          
+          if (Role?) then (Admin)
+            :Redirect Admin Dashboard;
+          else (Customer)
+            :Redirect Customer Dashboard;
+          endif
+        else (Belum)
+          :Kirim Email Verifikasi;
+        endif
+      else (Salah)
+        :Error Password Salah;
+      endif
+    else (Tidak)
+      :Error User Tidak Ditemukan;
+    endif
+  else (Tidak)
+    :Tampilkan Error Validasi;
+  endif
+
+else (Google)
+  |User|
+  :Klik Login Google;
+  
+  |Sistem|
+  :Redirect ke Google;
+  
+  |User|
+  :Pilih Akun & Izinkan;
+  
+  |Sistem|
+  :Terima Data Google;
+  
+  if (User Ada?) then (Ya)
+    :Login User;
+  else (Tidak)
+    :Buat User Baru;
+  endif
+  
+  :Redirect ke Dashboard;
+endif
+
+stop
+
+@enduml

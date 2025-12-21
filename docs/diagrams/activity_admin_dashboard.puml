@@ -1,0 +1,66 @@
+@startuml Activity Diagram - Admin Dashboard
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #2196F3
+skinparam ActivityDiamondBackgroundColor #FFF9C4
+skinparam ActivityDiamondBorderColor #FFC107
+skinparam ArrowColor #1976D2
+skinparam defaultFontSize 11
+
+title Activity Diagram - Admin Melihat Dashboard
+
+|#87CEEB|Admin|
+|#E3F2FD|Sistem|
+
+start
+
+|Admin|
+:Login ke Sistem;
+
+|Sistem|
+:Verifikasi Role;
+
+if (Admin?) then (Ya)
+  :Load Data Dashboard;
+  :Tampilkan Dashboard;
+  
+  |Admin|
+  :Lihat Dashboard;
+  
+  if (Pesanan Pending?) then (Ya)
+    :Lihat Badge;
+  else (Tidak)
+  endif
+  
+  if (Pesan Baru?) then (Ya)
+    :Lihat Notifikasi;
+  else (Tidak)
+  endif
+  
+  if (Navigasi?) then (Menu)
+    |Sistem|
+    :Redirect Kelola Menu;
+  else if (Kategori) then
+    |Sistem|
+    :Redirect Kategori;
+  else if (Pesanan) then
+    |Sistem|
+    :Redirect Pesanan;
+  else if (Laporan) then
+    |Sistem|
+    :Redirect Laporan;
+  else if (Chat) then
+    |Sistem|
+    :Redirect Chat;
+  else (Tetap)
+    |Sistem|
+    :Refresh Dashboard;
+  endif
+else (Bukan)
+  |Sistem|
+  :Redirect Customer;
+endif
+
+stop
+
+@enduml

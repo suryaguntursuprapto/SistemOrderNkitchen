@@ -1,0 +1,66 @@
+@startuml Activity Diagram - Register
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #2196F3
+skinparam ActivityDiamondBackgroundColor #FFF9C4
+skinparam ActivityDiamondBorderColor #FFC107
+skinparam ArrowColor #1976D2
+skinparam defaultFontSize 11
+
+title Activity Diagram - Proses Registrasi
+
+|#E8F5E9|User|
+|#E3F2FD|Sistem|
+
+start
+
+|User|
+:Akses Halaman Register;
+
+|Sistem|
+:Tampilkan Form Registrasi;
+
+|User|
+:Isi Data (Nama, Email, Password, dll);
+:Klik Register;
+
+|Sistem|
+:Validasi Input;
+
+if (Valid?) then (Ya)
+  :Cek Username Tersedia;
+  
+  if (Tersedia?) then (Ya)
+    :Cek Email Tersedia;
+    
+    if (Tersedia?) then (Ya)
+      :Hash Password;
+      :Simpan User Baru;
+      :Kirim Email Verifikasi;
+      :Tampilkan Halaman Verifikasi;
+      
+      |User|
+      :Buka Email;
+      :Klik Link Verifikasi;
+      
+      |Sistem|
+      if (Token Valid?) then (Ya)
+        :Set Email Terverifikasi;
+        :Redirect ke Login;
+      else (Expired)
+        :Tampilkan Error;
+        :Kirim Ulang Email;
+      endif
+    else (Sudah Ada)
+      :Error Email Sudah Terdaftar;
+    endif
+  else (Sudah Dipakai)
+    :Error Username Sudah Ada;
+  endif
+else (Tidak Valid)
+  :Tampilkan Error Validasi;
+endif
+
+stop
+
+@enduml

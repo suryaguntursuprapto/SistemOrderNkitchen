@@ -1,0 +1,89 @@
+@startuml Activity Diagram - Admin Buku Besar
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #2196F3
+skinparam ActivityDiamondBackgroundColor #FFF9C4
+skinparam ActivityDiamondBorderColor #FFC107
+skinparam ArrowColor #1976D2
+skinparam defaultFontSize 11
+
+title Activity Diagram - Admin Buku Besar
+
+|#87CEEB|Admin|
+|#E3F2FD|Sistem|
+
+start
+
+|Admin|
+:Akses Buku Besar;
+
+|Sistem|
+:Load Daftar Akun;
+:Set Default Periode;
+:Tampilkan Halaman;
+
+|Admin|
+:Lihat Buku Besar;
+
+if (Pilih Akun?) then (Ya)
+  :Pilih dari Dropdown;
+  
+  |Sistem|
+  :Query Transaksi Akun;
+  :Calculate Saldo;
+  :Tampilkan Mutasi;
+else (Semua)
+  |Sistem|
+  :Tampilkan Overview;
+endif
+
+if (Filter Periode?) then (Ya)
+  :Pilih Tanggal Range;
+  
+  |Sistem|
+  :Query dalam Periode;
+  :Recalculate;
+  :Refresh;
+else (Tidak)
+endif
+
+|Admin|
+:Analisis Mutasi;
+
+if (Trace Jurnal?) then (Ya)
+  :Klik Transaksi;
+  
+  |Sistem|
+  :Tampilkan Detail Jurnal;
+else (Tidak)
+endif
+
+if (Akun Lain?) then (Ya)
+  :Pilih Akun Lain;
+  
+  |Sistem|
+  :Load Buku Besar Baru;
+else (Tidak)
+endif
+
+if (Export?) then (Ya)
+  :Pilih Format;
+  
+  |Sistem|
+  :Generate File;
+  :Download;
+else (Tidak)
+endif
+
+if (Print?) then (Ya)
+  |Sistem|
+  :Generate Print View;
+  
+  |Admin|
+  :Print;
+else (Tidak)
+endif
+
+stop
+
+@enduml

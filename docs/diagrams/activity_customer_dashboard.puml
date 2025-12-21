@@ -1,0 +1,50 @@
+@startuml Activity Diagram - Customer Dashboard
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #2196F3
+skinparam ActivityDiamondBackgroundColor #FFF9C4
+skinparam ActivityDiamondBorderColor #FFC107
+skinparam ArrowColor #1976D2
+skinparam defaultFontSize 11
+
+title Activity Diagram - Customer Melihat Dashboard
+
+|#E8F5E9|Customer|
+|#E3F2FD|Sistem|
+
+start
+
+|Customer|
+:Login ke Sistem;
+
+|Sistem|
+:Verifikasi Session;
+
+if (Valid?) then (Ya)
+  :Load Data Dashboard;
+  :Tampilkan Dashboard;
+  
+  |Customer|
+  :Lihat Dashboard;
+  
+  if (Aksi?) then (Menu)
+    |Sistem|
+    :Redirect ke Menu;
+  else if (Pesanan) then
+    |Sistem|
+    :Redirect ke Riwayat;
+  else if (Chat) then
+    |Sistem|
+    :Redirect ke Chat;
+  else (Tetap)
+    |Customer|
+    :Browse Dashboard;
+  endif
+else (Tidak Valid)
+  |Sistem|
+  :Redirect ke Login;
+endif
+
+stop
+
+@enduml

@@ -1,0 +1,79 @@
+@startuml Activity Diagram - Customer Riwayat
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #2196F3
+skinparam ActivityDiamondBackgroundColor #FFF9C4
+skinparam ActivityDiamondBorderColor #FFC107
+skinparam ArrowColor #1976D2
+skinparam defaultFontSize 11
+
+title Activity Diagram - Customer Riwayat Pesanan
+
+|#E8F5E9|Customer|
+|#E3F2FD|Sistem|
+
+start
+
+|Customer|
+:Akses Riwayat Pesanan;
+
+|Sistem|
+:Query Pesanan User;
+:Tampilkan Daftar;
+
+|Customer|
+if (Filter?) then (Ya)
+  :Pilih Status;
+  
+  |Sistem|
+  :Filter & Tampilkan;
+else (Tidak)
+endif
+
+|Customer|
+:Pilih Pesanan;
+:Klik Detail;
+
+|Sistem|
+:Load Detail;
+:Tampilkan Detail;
+
+|Customer|
+if (Status?) then (Belum Bayar)
+  :Klik Bayar;
+  
+  |Sistem|
+  :Redirect Pembayaran;
+  
+else if (Dalam Kirim) then
+  :Klik Lacak;
+  
+  |Sistem|
+  :Get Tracking;
+  :Tampilkan Timeline;
+  
+else if (Sampai) then
+  :Klik Diterima;
+  
+  |Sistem|
+  :Update Selesai;
+  :Catat Jurnal;
+  
+else if (Selesai) then
+  :Klik Pesan Lagi;
+  
+  |Sistem|
+  :Add to Cart;
+  :Redirect Keranjang;
+  
+else (Batal)
+  |Customer|
+  :Lihat Alasan;
+endif
+
+|Customer|
+:Kembali ke Daftar;
+
+stop
+
+@enduml
