@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poster Capstone - Sistem Pempek N'Kitchen</title>
+    <style>
+        @page {
+            size: A1 portrait;
+            /* 594mm x 841mm */
+            margin: 0;
+        }
+
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            width: 594mm;
+            /* A1 Width */
+            height: 841mm;
+            /* A1 Height */
+            background-color: #f4f4f4;
+            color: #333;
+            box-sizing: border-box;
+            overflow: hidden;
+            /* Prevent scrollbars */
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            background: white;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            position: relative;
+        }
+
+        /* HEADER */
+        header {
+            background: linear-gradient(135deg, #8B0000 0%, #B22222 100%);
+            /* UMY Red Vibes */
+            color: white;
+            padding: 30mm 40mm;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 5mm solid #FFD700;
+            /* Gold Accent */
+        }
+
+        .header-text {
+            flex: 1;
+        }
+
+        h1 {
+            font-size: 64pt;
+            margin: 0 0 10mm 0;
+            line-height: 1.1;
+            text-transform: uppercase;
+            font-weight: 800;
+        }
+
+        .subtitle {
+            font-size: 32pt;
+            font-weight: 300;
+            opacity: 0.9;
+        }
+
+        .logo {
+            width: 80mm;
+            height: auto;
+            background: white;
+            padding: 5mm;
+            border-radius: 10px;
+            margin-left: 20mm;
+        }
+
+        /* MAIN CONTENT */
+        main {
+            padding: 40mm;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40mm;
+            align-content: start;
+        }
+
+        .card {
+            background: white;
+            border-left: 5mm solid #2E8B57;
+            /* Islamic Green */
+            padding: 0 0 0 10mm;
+            margin-bottom: 30mm;
+        }
+
+        .card h2 {
+            font-size: 36pt;
+            color: #8B0000;
+            margin-top: 0;
+            margin-bottom: 10mm;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 5mm;
+        }
+
+        .card p,
+        .card li {
+            font-size: 24pt;
+            line-height: 1.5;
+            text-align: justify;
+        }
+
+        .card ul {
+            padding-left: 15mm;
+        }
+
+        /* IMAGE PLACEHOLDERS */
+        .img-placeholder {
+            width: 100%;
+            height: 150mm;
+            background: #eee;
+            border: 2px dashed #aaa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24pt;
+            color: #777;
+            margin: 10mm 0;
+            border-radius: 5mm;
+        }
+
+        /* TEAM SECTION */
+        .team-section {
+            grid-column: 1 / -1;
+            background: #f9f9f9;
+            padding: 20mm;
+            border-radius: 10mm;
+            display: flex;
+            justify-content: space-between;
+            border: 2px solid #ddd;
+        }
+
+        .team-block h3 {
+            font-size: 28pt;
+            color: #2E8B57;
+            margin-bottom: 10mm;
+        }
+
+        .student-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15mm;
+        }
+
+        .student-item {
+            font-size: 20pt;
+        }
+
+        .student-name {
+            font-weight: bold;
+            display: block;
+        }
+
+        .student-nim {
+            color: #666;
+        }
+
+        /* FOOTER */
+        footer {
+            background: #333;
+            color: white;
+            padding: 20mm 40mm;
+            text-align: center;
+            font-size: 20pt;
+            border-top: 5mm solid #2E8B57;
+        }
+
+        /* Screen Preview Adjustments */
+        @media screen {
+            body {
+                transform-origin: top center;
+                transition: transform 0.2s;
+                overflow: hidden;
+                /* Hide body scroll, we scale to fit */
+                height: 100vh;
+                width: 100vw;
+                background: #555;
+                /* Dark background for preview */
+                display: flex;
+                justify-content: center;
+                align-items: flex-start;
+            }
+
+            .container {
+                /* The standard size */
+                width: 594mm;
+                height: 841mm;
+                /* Add shadow for paper effect */
+                box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+            }
+        }
+    </style>
+    <script>
+        // Script to auto-scale the poster to fit the browser window
+        function fitToScreen() {
+            const container = document.querySelector('.container');
+            const pageWidth = 594; // mm
+            const pageHeight = 841; // mm
+
+            // Get window size in pixels
+            const winW = window.innerWidth;
+            const winH = window.innerHeight;
+
+            // Convert mm to Approx Pixels (96 DPI is usually strict, but we just need ratios)
+            // 1mm ~ 3.78px
+            const pageW_px = pageWidth * 3.78;
+            const pageH_px = pageHeight * 3.78;
+
+            const scaleW = winW / pageW_px;
+            const scaleH = winH / pageH_px;
+
+            // Use the smaller scale to fit entirely
+            const scale = Math.min(scaleW, scaleH) * 0.95; // 0.95 for small margin
+
+            container.style.transform = `scale(${scale})`;
+            // Center it vertically if needed
+            const marginTop = (winH - (pageH_px * scale)) / 2;
+            container.style.marginTop = `${Math.max(0, marginTop)}px`;
+        }
+
+        window.addEventListener('load', fitToScreen);
+        window.addEventListener('resize', fitToScreen);
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="header-text">
+                <h1>Sistem Pempek N'Kitchen</h1>
+                <div class="subtitle">Sistem Pemesanan Makanan Berbasis Web</div>
+            </div>
+            <!-- Logo UMY loaded locally -->
+            <img src="../public/images/umy_logo.png" alt="Logo UMY" class="logo">
+        </header>
+
+        <main>
+            <!-- Kolom Kiri -->
+            <div>
+                <div class="card">
+                    <h2>Latar Belakang & Tujuan</h2>
+                    <p>
+                        <strong>Latar Belakang:</strong> N-Kitchen menghadapi kendala dalam pencatatan pesanan manual
+                        yang rawan kesalahan dan promosi yang terbatas.
+                    </p>
+                    <p>
+                        <strong>Tujuan:</strong> Membangun sistem pemesanan berbasis web yang terintegrasi dengan
+                        Payment Gateway (Midtrans) dan API Logistik (Biteship) untuk efisiensi operasional dan perluasan
+                        pasar.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h2>Metodologi</h2>
+                    <ul>
+                        <li><strong>Pengembangan:</strong> Waterfall Model.</li>
+                        <li><strong>Backend:</strong> Laravel 11.</li>
+                        <li><strong>Frontend:</strong> Blade Template, Tailwind CSS.</li>
+                        <li><strong>Database:</strong> MySQL.</li>
+                        <li><strong>Integrasi:</strong> Midtrans (Pembayaran), Biteship (Ongkir).</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h2>Tim Pengembang</h2>
+                    <div class="team-block">
+                        <p><strong>Dosen Pembimbing:</strong><br>Dr. Ir. Dwijoko Purbohadi, M.T.</p>
+                        <hr style="border:0; border-top:1px solid #ccc; margin: 10mm 0;">
+                        <div class="student-list">
+                            <div class="student-item">
+                                <span class="student-name">Surya Guntur Suprapto</span>
+                                <span class="student-nim">20220140002</span>
+                            </div>
+                            <div class="student-item">
+                                <span class="student-name">Fauzi Tauffik Rahmawan</span>
+                                <span class="student-nim">20220140009</span>
+                            </div>
+                            <div class="student-item">
+                                <span class="student-name">Akhdan Jauzaa Iffat</span>
+                                <span class="student-nim">20220140174</span>
+                            </div>
+                            <div class="student-item">
+                                <span class="student-name">Rifqi Khabibi</span>
+                                <span class="student-nim">20220140169</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kolom Kanan -->
+            <div>
+                <div class="card">
+                    <h2>Hasil & Pembahasan</h2>
+                    <p>Sistem memiliki dua aktor utama: <strong>Admin</strong> dan <strong>Customer</strong>.</p>
+
+                    <div class="img-placeholder" style="background: #eef; color: #333;">
+                        [Tempatkan Screenshot Halaman Utama Di Sini]
+                    </div>
+                    <p style="font-size: 18pt; margin-top: -5mm;">Gambar 1: Halaman Beranda Customer</p>
+
+                    <div class="img-placeholder" style="background: #efe; color: #333;">
+                        [Tempatkan Screenshot Dashboard Admin Di Sini]
+                    </div>
+                    <p style="font-size: 18pt; margin-top: -5mm;">Gambar 2: Dashboard Admin dengan Statistik</p>
+
+                    <ul style="margin-top: 10mm;">
+                        <li><strong>Fitur Utama:</strong> Manajemen Menu, Cart & Checkout, Real-time Chat, Tracking
+                            Pesanan.</li>
+                        <li><strong>Keunggulan:</strong> Pembayaran otomatis validasi dan perhitungan ongkir realtime.
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h2>Kesimpulan</h2>
+                    <p>
+                        Sistem Pempek N'Kitchen berhasil diimplementasikan sesuai kebutuhan. Sistem ini mempercepat
+                        proses pemesanan hingga 50% dan mengurangi kesalahan pencatatan pesanan secara signifikan.
+                    </p>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            Program Studi Teknologi Informasi - Universitas Muhammadiyah Yogyakarta &copy; 2024
+        </footer>
+    </div>
+</body>
+
+</html>

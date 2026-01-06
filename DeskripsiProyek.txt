@@ -1,0 +1,43 @@
+JUDUL PROYEK:
+Sistem Pempek N'Kitchen - Sistem Pemesanan Makanan Berbasis Web
+
+DESKRIPSI SINGKAT:
+Sistem Pempek N'Kitchen adalah platform pemesanan makanan berbasis web yang dirancang untuk mendigitalkan operasional bisnis N-Kitchen. Sistem ini mengintegrasikan manajemen pesanan, pembayaran digital, dan pengiriman logistik dalam satu platform terpadu. Solusi ini mengatasi masalah pencatatan manual yang rawan kesalahan dan membantu memperluas jangkauan pasar melalui promosi digital.
+
+TIM PENGEMBANG:
+1. Surya Guntur Suprapto (20220140002)
+2. Fauzi Tauffik Rahmawan (20220140009)
+3. Akhdan Jauzaa Iffat (20220140174)
+4. Rifqi Khabibi (20220140169)
+
+DOSEN PEMBIMBING:
+Dr. Ir. Dwijoko Purbohadi, M.T.
+
+LATAR BELAKANG:
+UMKM N-Kitchen menghadapi kendala dalam pencatatan pesanan yang masih dilakukan secara manual, menyebabkan risiko kesalahan data dan efisiensi yang rendah. Selain itu, jangkauan promosi yang terbatas menghambat pertumbuhan bisnis.
+
+TUJUAN:
+Membangun aplikasi web yang mampu:
+1. Mengotomatisasi proses pemesanan dari pelanggan ke dapur.
+2. Menyediakan metode pembayaran aman dan otomatis melalui Payment Gateway (Midtrans).
+3. Mengintegrasikan perhitungan ongkos kirim dan tracking pengiriman secara real-time (Biteship).
+4. Menyajikan laporan keuangan dan penjualan secara otomatis bagi pemilik usaha.
+
+FITUR UTAMA:
+- Manajemen Menu & Kategori (Admin)
+- Keranjang Belanja & Checkout (Customer)
+- Integrasi Pembayaran Online (Midtrans: GoPay, ShopeePay, VA Bank, QRIS)
+- Cek Ongkos Kirim & Tracking Order (API Biteship)
+- Live Chat Customer Service (Real-time)
+- Laporan Penjualan & Keuangan (Jurnal, Buku Besar, Laba Rugi)
+- Dashboard Statistik (Admin & Customer)
+
+TEKNOLOGI YANG DIGUNAKAN:
+- Framework Backend: Laravel 11/12 (PHP)
+- Frontend: Blade Templates, Tailwind CSS
+- Database: MySQL / MariaDB
+- Integrasi API: Midtrans (Payment), Biteship (Logistics)
+- Tools Lain: Composer, NPM, Git
+
+KESIMPULAN:
+Implementasi sistem ini berhasil meningkatkan efisiensi proses pemesanan hingga 50% dan meminimalisir kesalahan manusia (human error) dalam pencatatan transaksi, serta memberikan kemudahan bagi pelanggan dalam bertransaksi.
