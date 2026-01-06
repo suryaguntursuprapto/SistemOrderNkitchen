@@ -31,7 +31,7 @@ LANGKAH-LANGKAH MENJALANKAN DARI AWAL:
      DB_CONNECTION=mysql
      DB_HOST=127.0.0.1
      DB_PORT=3306
-     DB_DATABASE=sistem_pempek  <-- Pastikan nama database ini dibuat di phpMyAdmin
+     DB_DATABASE=SistemPempek  <-- Pastikan nama database ini dibuat di phpMyAdmin
      DB_USERNAME=root
      DB_PASSWORD=
 
@@ -39,7 +39,7 @@ LANGKAH-LANGKAH MENJALANKAN DARI AWAL:
      php artisan key:generate
 
 5. Setup Database
-   - Buat database kosong bernama 'sistem_pempek' di phpMyAdmin/MySQL.
+   - Buat database kosong bernama 'SistemPempek' di phpMyAdmin/MySQL.
    - Jalankan migrasi dan seeder:
      php artisan migrate --seed
 
