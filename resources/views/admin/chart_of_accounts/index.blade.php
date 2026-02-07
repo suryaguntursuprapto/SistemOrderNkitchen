@@ -69,7 +69,7 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
                     @forelse ($accounts as $account)
-                        <tr class="hover:bg-purple-50/50 transition-colors">
+                        <tr class="hover:bg-purple-50/50 transition-colors {{ $account->parent_id ? 'bg-gray-50/50' : '' }}">
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {{ $loop->iteration + $accounts->firstItem() - 1 }}
                             </td>
@@ -77,15 +77,21 @@
                                 {{ $account->code }}
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-900 font-medium">
+                                @if($account->parent_id)
+                                    <span class="text-gray-400 mr-2">↳</span>
+                                @endif
                                 {{ $account->name }}
+                                @if($account->parent)
+                                    <span class="text-xs text-gray-400 ml-2">(Sub dari: {{ $account->parent->name }})</span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 <span class="px-2.5 py-1 rounded-full text-xs font-medium 
-                                    @if($account->type == 'aset') bg-blue-100 text-blue-700
-                                    @elseif($account->type == 'kewajiban') bg-red-100 text-red-700
-                                    @elseif($account->type == 'modal') bg-purple-100 text-purple-700
-                                    @elseif($account->type == 'pendapatan') bg-green-100 text-green-700
-                                    @elseif($account->type == 'beban') bg-orange-100 text-orange-700
+                                    @if($account->type == 'Asset') bg-blue-100 text-blue-700
+                                    @elseif($account->type == 'Liability') bg-red-100 text-red-700
+                                    @elseif($account->type == 'Equity') bg-purple-100 text-purple-700
+                                    @elseif($account->type == 'Revenue') bg-green-100 text-green-700
+                                    @elseif($account->type == 'Expense') bg-orange-100 text-orange-700
                                     @else bg-gray-100 text-gray-700
                                     @endif">
                                     {{ ucfirst($account->type) }}

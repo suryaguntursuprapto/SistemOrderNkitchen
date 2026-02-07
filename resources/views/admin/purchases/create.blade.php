@@ -29,13 +29,28 @@
             <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-200 mb-6">
                 <div class="p-6">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Detail Nota</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label for="purchase_date" class="block text-sm font-medium text-gray-700">Tanggal Pembelian</label>
                             <input type="date" name="purchase_date" id="purchase_date" 
                                    value="{{ old('purchase_date', date('Y-m-d')) }}"
                                    class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500">
                         </div>
+                        <div>
+                            <label for="chart_of_account_id" class="block text-sm font-medium text-gray-700">Kategori Pembelian</label>
+                            <select name="chart_of_account_id" id="chart_of_account_id"
+                                    class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500">
+                                <option value="">-- Pilih Kategori --</option>
+                                @foreach ($purchaseAccounts as $account)
+                                <option value="{{ $account->id }}" {{ old('chart_of_account_id') == $account->id ? 'selected' : '' }}>
+                                    [{{ $account->code }}] {{ $account->name }}
+                                </option>
+                                @endforeach
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Contoh: Pembelian Ikan, Pembelian Tepung, dll. Tambahkan di menu Bagan Akun.</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                         <div>
                             <label for="supplier_name" class="block text-sm font-medium text-gray-700">Nama Pemasok (Opsional)</label>
                             <input type="text" name="supplier_name" id="supplier_name" 
@@ -83,7 +98,7 @@
                                     <label class="block text-sm font-medium text-gray-700">Harga Satuan (Rp)</label>
                                     <input type="number" :name="`items[${index}][price_per_unit]`" x-model.number="item.price_per_unit" @input="calculateTotal()"
                                            class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
-                                           placeholder="60000" step="100">
+                                           placeholder="60000" step="any">
                                 </div>
                                 <div class="col-span-12 md:col-span-1 flex items-end">
                                     <button type="button" @click="removeItem(index)" 

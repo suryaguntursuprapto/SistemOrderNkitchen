@@ -1,0 +1,35 @@
+ANALISIS KEAMANAN SISTEM
+Sistem Pempek N'Kitchen
+
+Sistem ini menerapkan berbagai lapisan keamanan untuk melindungi data pengguna, transaksi, dan integritas aplikasi. Berikut adalah rincian fitur keamanan yang diimplementasikan:
+
+1. OTENTIKASI & PROTEKSI AKUN (Authentication)
+   - Enkripsi Password: Semua password pengguna dienkripsi menggunakan algoritma Bcrypt (via Laravel Hash) sebelum disimpan di database. Password asli tidak pernah disimpan dalam bentuk teks biasa.
+   - Proteksi Brute Force: 
+     * Login dibatasi maksimal 5 percobaan per menit (`throttle:5,1`).
+     * Registrasi dibatasi maksimal 3 kali per menit (`throttle:3,1`).
+     Hal ini mencegah serangan penebakan password otomatis.
+   - Validasi Password Kuat: Password baru wajib memiliki minimal 8 karakter, mengandung huruf besar, huruf kecil, dan angka.
+   - Verifikasi Email: Pengguna baru wajib memverifikasi email sebelum dapat mengakses fitur utama, mencegah penggunaan email palsu (`MustVerifyEmail`).
+
+2. OTORISASI & AKSES KONTROL (Authorization)
+   - Role-Based Access Control (RBAC): Pemisahan akses yang ketat antara 'Admin' dan 'Customer'. Middleware memblokir Customer dari mengakses halaman Admin dan sebaliknya.
+   - Middleware Protection: Route sensitif dilindungi oleh middleware `auth` dan `verified`, memastikan hanya pengguna yang login dan terverifikasi yang dapat mengaksesnya.
+
+3. KEAMANAN DATA & APLIKASI
+   - Perlindungan SQL Injection: Menggunakan Eloquent ORM yang secara otomatis menggunakan teknik PDO Parameter Binding, membuat sistem kebal terhadap serangan SQL Injection standar.
+   - Perlindungan XSS (Cross-Site Scripting): Output data pada Blade Template secara otomatis di-firewall (escape) untuk mencegah penyisipan skrip berbahaya.
+   - Validasi Input Ketat: Semua input dari pengguna (seperti form login, register, checkout) divalidasi sisi server (`$request->validate`) untuk memastikan format dan tipe data yang benar.
+   - CSRF Protection: Setiap form HTML dilindungi token CSRF (Cross-Site Request Forgery) untuk mencegah eksekusi tindakan tanpa izin pengguna.
+
+4. KEAMANAN TRANSAKSI (Payment Gateway Midtrans)
+   - Server Key Protection: Kunci rahasia API (Server Key) disimpan aman di file `.env` di server dan tidak pernah diekspos ke sisi klien (browser).
+   - Secure Snap Token: Transaksi dimulai dengan pembuatan Token Snap yang terenkripsi dari sisi server, sehingga manipulasi harga di sisi browser tidak dimungkinkan.
+   - Signature Key Validation: Sistem memverifikasi tanda tangan digital (signature key) dari setiap notifikasi callback Midtrans untuk memastikan status pembayaran benar-benar berasal dari Midtrans, bukan request palsu.
+
+5. KEAMANAN INFRASTRUKTUR
+   - Environment Variables: Kredensial sensitif (Database password, API Keys, SMTP) disimpan dalam file `.env` yang tidak ikut di-upload ke repository publik (via `.gitignore`).
+   - Signed Routes: Tautan sensitif seperti "Reset Password" dan "Verifikasi Email" menggunakan tanda tangan kriptografi (signed URLs) agar tidak dapat dimanipulasi.
+
+KESIMPULAN:
+Secara keseluruhan, Sistem Pempek N'Kitchen telah memenuhi standar keamanan aplikasi web modern dengan menerapkan prinsip "Security by Design" menggunakan fitur-fitur keamanan bawaan Framework Laravel yang teruji.

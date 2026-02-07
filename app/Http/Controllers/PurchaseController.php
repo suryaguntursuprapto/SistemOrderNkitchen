@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Purchase;
 use App\Models\PurchaseDetail;
+use App\Models\ChartOfAccount;
 use App\Services\AccountingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +32,16 @@ class PurchaseController extends Controller
      */
     public function create()
     {
-        return view('admin.purchases.create');
+        // Ambil akun beban yang merupakan sub-kategori dari "Beban Bahan Baku"
+        // untuk pemilihan jenis pembelian (Pembelian Tepung, Pembelian Ikan, dll)
+        $purchaseAccounts = ChartOfAccount::where('type', 'Expense')
+            ->whereHas('parent', function ($query) {
+                $query->where('name', 'like', '%Bahan Baku%');
+            })
+            ->orderBy('code')
+            ->get();
+        
+        return view('admin.purchases.create', compact('purchaseAccounts'));
     }
 
     /**
@@ -44,6 +54,7 @@ class PurchaseController extends Controller
             'purchase_date' => 'required|date',
             'supplier_name' => 'nullable|string|max:255',
             'invoice_number' => 'nullable|string|max:255',
+            'chart_of_account_id' => 'nullable|exists:chart_of_accounts,id',
             'status' => 'required|in:paid,unpaid',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
@@ -77,6 +88,7 @@ class PurchaseController extends Controller
                     'purchase_date' => $validated['purchase_date'],
                     'supplier_name' => $validated['supplier_name'],
                     'invoice_number' => $validated['invoice_number'],
+                    'chart_of_account_id' => $validated['chart_of_account_id'] ?? null,
                     'status' => $validated['status'],
                     'notes' => $validated['notes'],
                     'total_amount' => $totalAmount, // Total yang sudah dihitung

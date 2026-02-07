@@ -175,6 +175,12 @@ class AdminController extends Controller
 
     public function menuDestroy(Menu $menu)
     {
+        // Cek apakah menu sudah pernah dipesan
+        if ($menu->orderItems()->exists()) {
+            return redirect()->route('admin.menu.index')
+                ->with('error', 'Menu tidak dapat dihapus karena sudah pernah dipesan oleh customer. Nonaktifkan menu ini sebagai gantinya.');
+        }
+
         if ($menu->image) {
             Storage::disk('public')->delete($menu->image);
         }
@@ -240,8 +246,11 @@ class AdminController extends Controller
 
     public function categoryDestroy(Category $category)
     {
-        // Set menus in this category to null
-        $category->menus()->update(['category_id' => null]);
+        // Cek apakah kategori masih memiliki menu
+        if ($category->menus()->exists()) {
+            return redirect()->route('admin.category.index')
+                ->with('error', 'Kategori tidak dapat dihapus karena masih memiliki ' . $category->menus()->count() . ' menu. Pindahkan atau hapus menu terlebih dahulu.');
+        }
         
         $category->delete();
 
@@ -786,9 +795,13 @@ class AdminController extends Controller
 
     public function expenseCreate()
     {
-        // Ambil semua akun COA yang tipenya 'Expense'
+        // Ambil akun COA beban yang merupakan sub-kategori dari "Beban Operasional"
+        // untuk pemilihan jenis biaya (Biaya Gaji, Biaya Listrik, dll)
         $expenseAccounts = ChartOfAccount::where('type', 'Expense')
-                                         ->orderBy('name')
+                                         ->whereHas('parent', function ($query) {
+                                             $query->where('name', 'like', '%Operasional%');
+                                         })
+                                         ->orderBy('code')
                                          ->get();
                                          
         return view('admin.expense.create', compact('expenseAccounts'));

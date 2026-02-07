@@ -1,0 +1,65 @@
+PANDUAN INSTALASI & MENJALANKAN PROJECT DARI GITHUB
+Sistem Pempek N'Kitchen
+
+PRASYARAT (Pastikan sudah terinstal):
+1. Git
+2. PHP (Versi 8.2+)
+3. Composer
+4. Node.js & NPM
+5. MySQL / MariaDB
+
+LANGKAH-LANGKAH MENJALANKAN DARI AWAL:
+
+1. Clone Repository
+   Buka terminal (Command Prompt/PowerShell/Git Bash) dan jalankan:
+   git clone https://github.com/suryaguntursuprapto/SistemOrderNkitchen.git
+   cd SistemOrderNkitchen
+
+2. Install Backend Dependencies (Laravel)
+   composer install
+
+3. Install Frontend Dependencies (Tailwind/Vite)
+   npm install
+   npm run build
+
+4. Setup Environment (.env)
+   - Salin file konfigurasi .env.example menjadi .env:
+     cp .env.example .env
+     (Atau copy-paste manual file .env.example dan rename jadi .env)
+
+   - Buka file .env dan sesuaikan bagian database:
+     DB_CONNECTION=mysql
+     DB_HOST=127.0.0.1
+     DB_PORT=3306
+     DB_DATABASE=sistem_pempek  <-- Pastikan nama database ini dibuat di phpMyAdmin
+     DB_USERNAME=root
+     DB_PASSWORD=
+
+   - Generate Application Key:
+     php artisan key:generate
+
+5. Setup Database
+   - Buat database kosong bernama 'sistem_pempek' di phpMyAdmin/MySQL.
+   - Jalankan migrasi dan seeder:
+     php artisan migrate --seed
+
+6. Jalankan Aplikasi
+   php artisan serve
+
+   Akses di browser: http://127.0.0.1:8000
+
+---
+AKUN DEMO (Jika menggunakan --seed):
+Role: Admin
+Email: admin@gmail.com
+Pass: password
+
+Role: Customer
+Email: customer@gmail.com
+Pass: password
+---
+
+TROUBLESHOOTING:
+- Jika error "No application encryption key has been specified", jalankan: php artisan key:generate
+- Jika error tampilan berantakan (CSS tidak load), pastikan sudah menjalankan: npm run build
+- Jika error permission di folder storage, jalankan: chmod -R 777 storage

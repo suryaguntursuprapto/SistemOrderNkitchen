@@ -21,6 +21,7 @@ class Purchase extends Model
         'total_amount',
         'status',
         'notes',
+        'chart_of_account_id',
     ];
 
     /**
@@ -48,5 +49,13 @@ class Purchase extends Model
     public function journal()
     {
         return $this->morphOne(Journal::class, 'referenceable');
+    }
+
+    /**
+     * Relasi ke Chart of Account (kategori pembelian).
+     */
+    public function chartOfAccount()
+    {
+        return $this->belongsTo(ChartOfAccount::class);
     }
 }

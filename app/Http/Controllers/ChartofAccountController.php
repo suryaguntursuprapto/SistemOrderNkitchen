@@ -15,9 +15,10 @@ class ChartOfAccountController extends Controller
     {
         // Kita gunakan 'withSum' untuk mendapatkan total debit/kredit
         // langsung dari database. Ini sangat efisien.
-        $accounts = ChartOfAccount::withSum('journalTransactions', 'debit')
+        $accounts = ChartOfAccount::with('parent')
+                            ->withSum('journalTransactions', 'debit')
                             ->withSum('journalTransactions', 'credit')
-                            ->latest()
+                            ->orderBy('code')
                             ->paginate(20); // Anda bisa ganti jumlah paginasi
         
         // Kirim data ke view

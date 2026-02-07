@@ -38,7 +38,7 @@
                         <label for="amount" class="block text-sm font-medium text-gray-700">Jumlah (Rp)</label>
                         <input type="number" name="amount" id="amount" 
                                value="{{ old('amount') }}"
-                               placeholder="50000"
+                               placeholder="50000" step="any"
                                class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500">
                     </div>
                 </div>
