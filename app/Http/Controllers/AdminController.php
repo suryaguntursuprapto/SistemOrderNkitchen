@@ -23,6 +23,8 @@ use App\Exports\IncomeStatementExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 use App\Services\AccountingService;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ShippingNotification;
 
 class AdminController extends Controller
 {
@@ -478,8 +480,25 @@ class AdminController extends Controller
         $order->update($validated);
 
         $successMessage = 'Pesanan berhasil diperbarui!';
+        
+        // 📧 Kirim email notifikasi pengiriman ke pembeli jika tracking number baru ditambahkan
         if ($trackingNumberIsNew || $trackingNumberChanged) {
             $successMessage = 'No. Resi berhasil disimpan! Status pesanan otomatis diubah ke "Dalam Perjalanan".';
+            
+            try {
+                $order->load(['user', 'orderItems.menu']);
+                Mail::to($order->user->email)->send(new ShippingNotification($order));
+                $successMessage .= ' Email notifikasi pengiriman telah dikirim ke pembeli.';
+                \Log::info("Shipping notification email sent to: {$order->user->email}", [
+                    'order_id' => $order->id,
+                    'tracking_number' => $order->tracking_number
+                ]);
+            } catch (\Exception $emailException) {
+                \Log::error("Failed to send shipping notification email", [
+                    'order_id' => $order->id,
+                    'error' => $emailException->getMessage()
+                ]);
+            }
         }
 
         return redirect()->route('admin.order.show', $order)->with('success', $successMessage);

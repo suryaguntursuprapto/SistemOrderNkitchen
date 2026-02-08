@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Order;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ShippingNotification;
 
 class BiteshipService
 {
@@ -188,6 +190,23 @@ class BiteshipService
                 'biteship_order_id' => $data['id'] ?? null,
                 'waybill_id' => $data['courier']['waybill_id'] ?? null
             ]);
+
+            // 📧 Kirim email notifikasi pengiriman ke pembeli
+            try {
+                $order->load(['user', 'orderItems.menu']);
+                if ($order->user && $order->user->email) {
+                    Mail::to($order->user->email)->send(new ShippingNotification($order));
+                    Log::info("Shipping notification email sent to: {$order->user->email}", [
+                        'order_id' => $order->id,
+                        'tracking_number' => $order->tracking_number
+                    ]);
+                }
+            } catch (\Exception $emailException) {
+                Log::error("Failed to send shipping notification email", [
+                    'order_id' => $order->id,
+                    'error' => $emailException->getMessage()
+                ]);
+            }
 
             return [
                 'success' => true,

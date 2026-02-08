@@ -17,7 +17,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http; 
-use Illuminate\Support\Facades\Log; 
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\InvoiceNotification; 
 use Illuminate\Routing\Controller;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Bus\DispatchesJobs;
@@ -926,7 +928,8 @@ class CustomerController extends Controller
                 
                 // Refresh order data
                 $order->refresh();
-                $order->load('orderItems.menu'); // Load untuk Biteship
+                $order->load(['orderItems.menu', 'user']); // Load untuk Biteship dan email
+                $payment->refresh();
                 
                 // Debug log untuk melihat data order
                 \Log::info('Order data untuk WA notifikasi', [
@@ -939,6 +942,17 @@ class CustomerController extends Controller
                 
                 // 🔔 Panggil notifikasi WhatsApp Admin
                 $this->midtransService->sendWhatsAppNotification($order, 'CONFIRMED');
+                
+                // 📧 Kirim email invoice ke pembeli
+                try {
+                    Mail::to($order->user->email)->send(new InvoiceNotification($order, $payment));
+                    \Log::info("Invoice email sent to: {$order->user->email}");
+                } catch (\Exception $emailException) {
+                    \Log::error("Failed to send invoice email", [
+                        'order_id' => $order->id,
+                        'error' => $emailException->getMessage()
+                    ]);
+                }
                 
                 // 📦 DISABLED: Auto-create Biteship order
                 // Sekarang admin harus manual trigger dari halaman order detail (untuk mendukung sistem PO)
