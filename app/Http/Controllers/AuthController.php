@@ -127,12 +127,12 @@ class AuthController extends Controller
             'role' => 'customer',
         ]);
 
-        // 🚀 PENTING: Kirim email verifikasi
-        event(new Registered($user));
+        // Kirim OTP verifikasi email
+        $user->generateEmailOtp();
 
         Auth::login($user);
 
-        return redirect('/customer/dashboard');
+        return redirect()->route('verification.notice')->with('otp_sent', true);
     }
 
     public function logout(Request $request)
@@ -214,5 +214,55 @@ class AuthController extends Controller
         }
 
         return back()->withErrors(['email' => 'Token reset password tidak valid atau telah kedaluwarsa.']);
+    }
+
+    // --- FITUR VERIFIKASI OTP EMAIL ---
+
+    /**
+     * Verifikasi kode OTP email
+     */
+    public function verifyOtp(Request $request)
+    {
+        $request->validate([
+            'otp' => 'required|array|size:6',
+            'otp.*' => 'required|digits:1',
+        ], [
+            'otp.required' => 'Kode OTP wajib diisi.',
+            'otp.size' => 'Kode OTP harus 6 digit.',
+        ]);
+
+        $otp = implode('', $request->otp);
+        $user = Auth::user();
+
+        if ($user->verifyEmailOtp($otp)) {
+            return redirect('/customer/dashboard')->with('success', 'Email berhasil diverifikasi!');
+        }
+
+        return back()->with('error', 'Kode OTP tidak valid atau sudah kedaluwarsa.');
+    }
+
+    /**
+     * Kirim ulang kode OTP
+     */
+    public function resendOtp(Request $request)
+    {
+        $user = Auth::user();
+        
+        // Rate limiting: max 3 resends per hour
+        $lastSent = $user->email_otp_expires_at?->subMinutes(10);
+        if ($lastSent && $lastSent->diffInMinutes(now()) < 1) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Tunggu 1 menit sebelum mengirim ulang.'], 429);
+            }
+            return redirect()->route('verification.notice')->with('error', 'Tunggu 1 menit sebelum mengirim ulang.');
+        }
+
+        $user->generateEmailOtp();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Kode OTP baru telah dikirim ke email Anda.']);
+        }
+
+        return redirect()->route('verification.notice')->with('success', 'Kode OTP baru telah dikirim ke email Anda.')->with('otp_sent', true);
     }
 }

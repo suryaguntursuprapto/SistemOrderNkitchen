@@ -40,12 +40,13 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
-// --- VERIFIKASI EMAIL ---
+// --- VERIFIKASI EMAIL (OTP) ---
 Route::middleware('auth')->group(function () {
     Route::get('/email/verify', function () {
         return view('auth.verify-email');
     })->name('verification.notice');
 
+    // Link-based verification (keep for backwards compatibility)
     Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
         $request->fulfill();
         if ($request->user()->isAdmin()) {
@@ -54,10 +55,24 @@ Route::middleware('auth')->group(function () {
         return redirect()->route('customer.dashboard')->with('success', 'Email berhasil diverifikasi!');
     })->middleware('signed')->name('verification.verify');
 
-    Route::post('/email/verification-notification', function (Request $request) {
-        $request->user()->sendEmailVerificationNotification();
-        return back()->with('success', 'Link verifikasi baru telah dikirim!');
-    })->middleware('throttle:6,1')->name('verification.send');
+    // OTP-based verification
+    Route::post('/email/verify-otp', [AuthController::class, 'verifyOtp'])
+        ->middleware('throttle:10,1')
+        ->name('verification.verify-otp');
+    
+    Route::post('/email/resend-otp', [AuthController::class, 'resendOtp'])
+        ->middleware('throttle:3,1')
+        ->name('verification.resend-otp');
+    
+    // GET fallback for browser refresh
+    Route::get('/email/resend-otp', function () {
+        return redirect()->route('verification.notice');
+    });
+
+    // Legacy route for backwards compatibility
+    Route::post('/email/verification-notification', [AuthController::class, 'resendOtp'])
+        ->middleware('throttle:6,1')
+        ->name('verification.send');
 });
 
 // Admin routes
