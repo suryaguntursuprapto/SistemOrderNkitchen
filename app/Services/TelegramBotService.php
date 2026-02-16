@@ -21,6 +21,81 @@ class TelegramBotService
         $this->accountingService = $accountingService;
     }
 
+    // ─────────────────────────────────────────────
+    //  FORMATTING HELPERS
+    // ─────────────────────────────────────────────
+
+    /**
+     * Create a header card with title
+     */
+    protected function formatHeader(string $emoji, string $title): string
+    {
+        return "━━━━━━━━━━━━━━━━━━━━\n"
+             . "  {$emoji}  <b>{$title}</b>\n"
+             . "━━━━━━━━━━━━━━━━━━━━";
+    }
+
+    /**
+     * Create a boxed header
+     */
+    protected function formatBox(string $emoji, string $title, string $subtitle = ''): string
+    {
+        $box = "┌─────────────────────┐\n"
+             . "│  {$emoji}  <b>{$title}</b>\n";
+
+        if ($subtitle) {
+            $box .= "│  {$subtitle}\n";
+        }
+
+        $box .= "└─────────────────────┘";
+
+        return $box;
+    }
+
+    /**
+     * Create a labeled info line
+     */
+    protected function formatField(string $emoji, string $label, string $value): string
+    {
+        return "{$emoji} {$label}  :  <b>{$value}</b>";
+    }
+
+    /**
+     * Create a separator line
+     */
+    protected function separator(): string
+    {
+        return "━━━━━━━━━━━━━━━━━━━━";
+    }
+
+    /**
+     * Create a light separator
+     */
+    protected function lightSeparator(): string
+    {
+        return "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄";
+    }
+
+    /**
+     * Format currency
+     */
+    protected function formatRupiah(float $amount): string
+    {
+        return 'Rp ' . number_format($amount, 0, ',', '.');
+    }
+
+    /**
+     * Escape special HTML characters for Telegram HTML parse mode
+     */
+    protected function escapeHtml(string $text): string
+    {
+        return htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+
+    // ─────────────────────────────────────────────
+    //  WEBHOOK PROCESSING
+    // ─────────────────────────────────────────────
+
     /**
      * Process incoming webhook message
      */
@@ -33,7 +108,7 @@ class TelegramBotService
         }
 
         $message = $update['message'] ?? null;
-        
+
         if (!$message) {
             return;
         }
@@ -43,7 +118,10 @@ class TelegramBotService
 
         // Security: Only process messages from admin
         if ($chatId !== $this->adminChatId) {
-            $this->sendMessage($chatId, "⛔ Anda tidak memiliki akses ke bot ini.");
+            $msg = $this->formatHeader('⛔', 'AKSES DITOLAK') . "\n\n"
+                 . "Anda tidak memiliki akses\n"
+                 . "ke bot ini.";
+            $this->sendMessage($chatId, $msg);
             Log::warning('Telegram: Unauthorized access attempt', ['chat_id' => $chatId]);
             return;
         }
@@ -115,17 +193,27 @@ class TelegramBotService
         }
     }
 
+    // ─────────────────────────────────────────────
+    //  COMMAND HANDLERS
+    // ─────────────────────────────────────────────
+
     /**
      * Handle /biaya command - Input operational expense
      * Format: /biaya [kategori] [jumlah] [deskripsi]
      */
     protected function handleBiayaCommand(string $chatId, string $text): void
     {
-        // Parse: /biaya gaji 500000 Gaji karyawan
         $parts = explode(' ', $text, 4);
-        
+
         if (count($parts) < 3) {
-            $this->sendMessage($chatId, "❌ Format salah!\n\nContoh:\n`/biaya gaji 500000 Gaji bulan Feb`");
+            $msg = $this->formatHeader('❌', 'FORMAT SALAH') . "\n\n"
+                 . "📋 <b>Cara Penggunaan:</b>\n"
+                 . "<code>/biaya [kategori] [jumlah] [keterangan]</code>\n\n"
+                 . "💡 <b>Contoh:</b>\n"
+                 . "<code>/biaya gaji 500000 Gaji bulan Feb</code>\n\n"
+                 . $this->lightSeparator() . "\n"
+                 . "💬 Gunakan /kategori untuk melihat daftar";
+            $this->sendMessage($chatId, $msg);
             return;
         }
 
@@ -134,7 +222,9 @@ class TelegramBotService
         $deskripsi = $parts[3] ?? ucfirst($kategori);
 
         if ($jumlah <= 0) {
-            $this->sendMessage($chatId, "❌ Jumlah harus lebih dari 0!");
+            $msg = $this->formatHeader('❌', 'INPUT TIDAK VALID') . "\n\n"
+                 . "Jumlah harus lebih dari <b>0</b>!";
+            $this->sendMessage($chatId, $msg);
             return;
         }
 
@@ -147,30 +237,45 @@ class TelegramBotService
             ->first();
 
         if (!$account) {
-            $this->sendMessage($chatId, "❌ Kategori '$kategori' tidak ditemukan di Beban Operasional.\n\nGunakan `/kategori` untuk melihat daftar.");
+            $escapedKategori = $this->escapeHtml($kategori);
+            $msg = $this->formatHeader('🔍', 'KATEGORI TIDAK DITEMUKAN') . "\n\n"
+                 . "Kategori <b>\"{$escapedKategori}\"</b> tidak ditemukan\n"
+                 . "di Beban Operasional.\n\n"
+                 . $this->lightSeparator() . "\n"
+                 . "💡 Ketik /kategori untuk melihat daftar\n"
+                 . "➕ Atau /tambah untuk buat kategori baru";
+            $this->sendMessage($chatId, $msg);
             return;
         }
 
         try {
-            // Create expense
             $expense = Expense::create([
                 'description' => $deskripsi,
                 'amount' => $jumlah,
                 'date' => now()->toDateString(),
                 'chart_of_account_id' => $account->id,
-                'user_id' => 1, // Admin
+                'user_id' => 1,
             ]);
 
-            // Record to journal
             $this->accountingService->recordExpense($expense);
 
-            $formatted = number_format($jumlah, 0, ',', '.');
-            $this->sendMessage($chatId, "✅ *Biaya Tercatat*\n\n📁 Kategori: {$account->name}\n💰 Jumlah: Rp {$formatted}\n📝 Deskripsi: {$deskripsi}");
+            $escapedDesc = $this->escapeHtml($deskripsi);
+            $escapedName = $this->escapeHtml($account->name);
+            $msg = $this->formatHeader('✅', 'BIAYA TERCATAT') . "\n\n"
+                 . $this->formatField('📁', 'Kategori', $escapedName) . "\n"
+                 . $this->formatField('💰', 'Jumlah', $this->formatRupiah($jumlah)) . "\n"
+                 . $this->formatField('📝', 'Catatan', $escapedDesc) . "\n"
+                 . $this->formatField('📅', 'Tanggal', now()->translatedFormat('d M Y')) . "\n\n"
+                 . $this->separator();
 
+            $this->sendMessage($chatId, $msg);
             Log::info('Telegram: Expense recorded', ['expense_id' => $expense->id]);
         } catch (\Exception $e) {
             Log::error('Telegram: Failed to record expense', ['error' => $e->getMessage()]);
-            $this->sendMessage($chatId, "❌ Gagal menyimpan biaya: " . $e->getMessage());
+            $msg = $this->formatHeader('💥', 'GAGAL MENYIMPAN') . "\n\n"
+                 . "Terjadi kesalahan saat menyimpan biaya.\n\n"
+                 . "🔧 <i>" . $this->escapeHtml($e->getMessage()) . "</i>";
+            $this->sendMessage($chatId, $msg);
         }
     }
 
@@ -180,11 +285,17 @@ class TelegramBotService
      */
     protected function handleBeliCommand(string $chatId, string $text): void
     {
-        // Parse: /beli ikan 300000 Ikan tenggiri 10kg
         $parts = explode(' ', $text, 4);
-        
+
         if (count($parts) < 3) {
-            $this->sendMessage($chatId, "❌ Format salah!\n\nContoh:\n`/beli ikan 300000 Ikan tenggiri 10kg`");
+            $msg = $this->formatHeader('❌', 'FORMAT SALAH') . "\n\n"
+                 . "📋 <b>Cara Penggunaan:</b>\n"
+                 . "<code>/beli [kategori] [jumlah] [keterangan]</code>\n\n"
+                 . "💡 <b>Contoh:</b>\n"
+                 . "<code>/beli ikan 300000 Ikan tenggiri 10kg</code>\n\n"
+                 . $this->lightSeparator() . "\n"
+                 . "💬 Gunakan /kategori untuk melihat daftar";
+            $this->sendMessage($chatId, $msg);
             return;
         }
 
@@ -193,7 +304,9 @@ class TelegramBotService
         $deskripsi = $parts[3] ?? ucfirst($kategori);
 
         if ($jumlah <= 0) {
-            $this->sendMessage($chatId, "❌ Jumlah harus lebih dari 0!");
+            $msg = $this->formatHeader('❌', 'INPUT TIDAK VALID') . "\n\n"
+                 . "Jumlah harus lebih dari <b>0</b>!";
+            $this->sendMessage($chatId, $msg);
             return;
         }
 
@@ -206,12 +319,18 @@ class TelegramBotService
             ->first();
 
         if (!$account) {
-            $this->sendMessage($chatId, "❌ Kategori '$kategori' tidak ditemukan di Beban Bahan Baku.\n\nGunakan `/kategori` untuk melihat daftar.");
+            $escapedKategori = $this->escapeHtml($kategori);
+            $msg = $this->formatHeader('🔍', 'KATEGORI TIDAK DITEMUKAN') . "\n\n"
+                 . "Kategori <b>\"{$escapedKategori}\"</b> tidak ditemukan\n"
+                 . "di Beban Bahan Baku.\n\n"
+                 . $this->lightSeparator() . "\n"
+                 . "💡 Ketik /kategori untuk melihat daftar\n"
+                 . "➕ Atau /tambah untuk buat kategori baru";
+            $this->sendMessage($chatId, $msg);
             return;
         }
 
         try {
-            // Create simple purchase (single item)
             $purchase = Purchase::create([
                 'purchase_date' => now()->toDateString(),
                 'supplier_name' => 'Via Telegram',
@@ -222,7 +341,6 @@ class TelegramBotService
                 'total_amount' => $jumlah,
             ]);
 
-            // Create single purchase detail
             $purchase->purchaseDetails()->create([
                 'item_name' => $deskripsi,
                 'quantity' => 1,
@@ -231,16 +349,26 @@ class TelegramBotService
                 'subtotal' => $jumlah,
             ]);
 
-            // Record to journal
             $this->accountingService->recordPurchase($purchase);
 
-            $formatted = number_format($jumlah, 0, ',', '.');
-            $this->sendMessage($chatId, "✅ *Pembelian Tercatat*\n\n📁 Kategori: {$account->name}\n💰 Jumlah: Rp {$formatted}\n📝 Deskripsi: {$deskripsi}");
+            $escapedDesc = $this->escapeHtml($deskripsi);
+            $escapedName = $this->escapeHtml($account->name);
+            $msg = $this->formatHeader('✅', 'PEMBELIAN TERCATAT') . "\n\n"
+                 . $this->formatField('📁', 'Kategori', $escapedName) . "\n"
+                 . $this->formatField('💰', 'Jumlah', $this->formatRupiah($jumlah)) . "\n"
+                 . $this->formatField('📝', 'Catatan', $escapedDesc) . "\n"
+                 . $this->formatField('📅', 'Tanggal', now()->translatedFormat('d M Y')) . "\n"
+                 . $this->formatField('🧾', 'Invoice', $purchase->invoice_number) . "\n\n"
+                 . $this->separator();
 
+            $this->sendMessage($chatId, $msg);
             Log::info('Telegram: Purchase recorded', ['purchase_id' => $purchase->id]);
         } catch (\Exception $e) {
             Log::error('Telegram: Failed to record purchase', ['error' => $e->getMessage()]);
-            $this->sendMessage($chatId, "❌ Gagal menyimpan pembelian: " . $e->getMessage());
+            $msg = $this->formatHeader('💥', 'GAGAL MENYIMPAN') . "\n\n"
+                 . "Terjadi kesalahan saat menyimpan pembelian.\n\n"
+                 . "🔧 <i>" . $this->escapeHtml($e->getMessage()) . "</i>";
+            $this->sendMessage($chatId, $msg);
         }
     }
 
@@ -250,18 +378,25 @@ class TelegramBotService
      */
     protected function handleTambahCommand(string $chatId, string $text): void
     {
-        // Parse: /tambah operasional Biaya Internet
         $parts = explode(' ', $text, 3);
-        
+
         if (count($parts) < 3) {
-            $this->sendMessage($chatId, "❌ Format salah!\n\nContoh:\n`/tambah operasional Biaya Internet`\n`/tambah bahan Pembelian Minyak`");
+            $msg = $this->formatHeader('❌', 'FORMAT SALAH') . "\n\n"
+                 . "📋 <b>Cara Penggunaan:</b>\n"
+                 . "<code>/tambah [jenis] [nama kategori]</code>\n\n"
+                 . "💡 <b>Contoh:</b>\n"
+                 . "<code>/tambah operasional Biaya Internet</code>\n"
+                 . "<code>/tambah bahan Pembelian Minyak</code>\n\n"
+                 . $this->lightSeparator() . "\n"
+                 . "🏢 <b>operasional</b> → Beban Operasional\n"
+                 . "🥩 <b>bahan</b> → Beban Bahan Baku";
+            $this->sendMessage($chatId, $msg);
             return;
         }
 
         $parentKeyword = strtolower($parts[1]);
         $namaSubkategori = $parts[2];
 
-        // Find parent account
         $parent = ChartOfAccount::where('type', 'Expense')
             ->whereNull('parent_id')
             ->where(function ($q) use ($parentKeyword) {
@@ -270,20 +405,21 @@ class TelegramBotService
             ->first();
 
         if (!$parent) {
-            $this->sendMessage($chatId, "❌ Parent '$parentKeyword' tidak ditemukan.\n\nGunakan:\n- `operasional` untuk Beban Operasional\n- `bahan` untuk Beban Bahan Baku");
+            $msg = $this->formatHeader('🔍', 'PARENT TIDAK DITEMUKAN') . "\n\n"
+                 . "Parent <b>\"" . $this->escapeHtml($parentKeyword) . "\"</b>\ntidak ditemukan.\n\n"
+                 . $this->lightSeparator() . "\n"
+                 . "📌 <b>Gunakan salah satu:</b>\n"
+                 . "  🏢 <code>operasional</code> → Beban Operasional\n"
+                 . "  🥩 <code>bahan</code> → Beban Bahan Baku";
+            $this->sendMessage($chatId, $msg);
             return;
         }
 
-        // Generate next code
         $lastChild = ChartOfAccount::where('parent_id', $parent->id)
             ->orderBy('code', 'desc')
             ->first();
 
-        if ($lastChild) {
-            $nextCode = (int)$lastChild->code + 1;
-        } else {
-            $nextCode = (int)$parent->code + 1;
-        }
+        $nextCode = $lastChild ? (int)$lastChild->code + 1 : (int)$parent->code + 1;
 
         try {
             $newAccount = ChartOfAccount::create([
@@ -295,12 +431,23 @@ class TelegramBotService
                 'description' => 'Dibuat via Telegram Bot',
             ]);
 
-            $this->sendMessage($chatId, "✅ *Kategori Baru Dibuat*\n\n🔢 Kode: {$newAccount->code}\n📁 Nama: {$namaSubkategori}\n📂 Parent: {$parent->name}");
+            $escapedNama = $this->escapeHtml($namaSubkategori);
+            $escapedParent = $this->escapeHtml($parent->name);
+            $msg = $this->formatHeader('✅', 'KATEGORI BARU DIBUAT') . "\n\n"
+                 . $this->formatField('🔢', 'Kode', $newAccount->code) . "\n"
+                 . $this->formatField('📁', 'Nama', $escapedNama) . "\n"
+                 . $this->formatField('📂', 'Parent', $escapedParent) . "\n\n"
+                 . $this->lightSeparator() . "\n"
+                 . "💡 Kategori siap digunakan untuk pencatatan!";
 
+            $this->sendMessage($chatId, $msg);
             Log::info('Telegram: New COA created', ['account_id' => $newAccount->id]);
         } catch (\Exception $e) {
             Log::error('Telegram: Failed to create COA', ['error' => $e->getMessage()]);
-            $this->sendMessage($chatId, "❌ Gagal membuat kategori: " . $e->getMessage());
+            $msg = $this->formatHeader('💥', 'GAGAL MEMBUAT KATEGORI') . "\n\n"
+                 . "Terjadi kesalahan saat membuat kategori.\n\n"
+                 . "🔧 <i>" . $this->escapeHtml($e->getMessage()) . "</i>";
+            $this->sendMessage($chatId, $msg);
         }
     }
 
@@ -323,33 +470,50 @@ class TelegramBotService
             ->orderBy('code')
             ->get();
 
-        $message = "*📂 DAFTAR KATEGORI*\n\n";
-        
-        $message .= "*Beban Operasional* (untuk /biaya):\n";
+        $msg = $this->formatBox('📂', 'DAFTAR KATEGORI') . "\n\n";
+
+        // Beban Operasional
+        $msg .= "🏢 <b>Beban Operasional</b>\n"
+              . "    <i>Gunakan dengan /biaya</i>\n"
+              . $this->lightSeparator() . "\n";
+
         if ($operasional->isEmpty()) {
-            $message .= "  - Belum ada\n";
+            $msg .= "    <i>Belum ada kategori</i>\n";
         } else {
-            foreach ($operasional as $acc) {
+            foreach ($operasional as $i => $acc) {
                 $keyword = strtolower(str_replace(['Beban ', 'Biaya '], '', $acc->name));
-                $message .= "  • `{$keyword}` → {$acc->name}\n";
+                $num = $i + 1;
+                $escapedName = $this->escapeHtml($acc->name);
+                $msg .= "    {$num}. <code>{$keyword}</code> → {$escapedName}\n";
             }
         }
 
-        $message .= "\n*Beban Bahan Baku* (untuk /beli):\n";
+        $msg .= "\n";
+
+        // Beban Bahan Baku
+        $msg .= "🥩 <b>Beban Bahan Baku</b>\n"
+              . "    <i>Gunakan dengan /beli</i>\n"
+              . $this->lightSeparator() . "\n";
+
         if ($bahanBaku->isEmpty()) {
-            $message .= "  - Belum ada\n";
+            $msg .= "    <i>Belum ada kategori</i>\n";
         } else {
-            foreach ($bahanBaku as $acc) {
+            foreach ($bahanBaku as $i => $acc) {
                 $keyword = strtolower(str_replace(['Beban ', 'Pembelian '], '', $acc->name));
-                $message .= "  • `{$keyword}` → {$acc->name}\n";
+                $num = $i + 1;
+                $escapedName = $this->escapeHtml($acc->name);
+                $msg .= "    {$num}. <code>{$keyword}</code> → {$escapedName}\n";
             }
         }
 
-        $this->sendMessage($chatId, $message);
+        $msg .= "\n" . $this->separator() . "\n"
+              . "➕ Tambah kategori baru: /tambah";
+
+        $this->sendMessage($chatId, $msg);
     }
 
     /**
-     * Handle /ringkasan command - Today's summary
+     * Handle /ringkasan command - Today's summary with breakdown
      */
     protected function handleRingkasanCommand(string $chatId): void
     {
@@ -360,18 +524,63 @@ class TelegramBotService
         $countBiaya = Expense::whereDate('date', $today)->count();
         $countBeli = Purchase::whereDate('purchase_date', $today)->count();
 
-        $fBiaya = number_format($totalBiaya, 0, ',', '.');
-        $fBeli = number_format($totalBeli, 0, ',', '.');
-        $fTotal = number_format($totalBiaya + $totalBeli, 0, ',', '.');
+        $msg = $this->formatBox('📊', 'RINGKASAN HARI INI', '📅 ' . now()->translatedFormat('l, d F Y')) . "\n\n";
 
-        $message = "*📊 RINGKASAN HARI INI*\n";
-        $message .= "📅 " . now()->translatedFormat('l, d F Y') . "\n\n";
-        $message .= "💳 Biaya Operasional: {$countBiaya}x = Rp {$fBiaya}\n";
-        $message .= "🛒 Pembelian Bahan: {$countBeli}x = Rp {$fBeli}\n";
-        $message .= "━━━━━━━━━━━━━━\n";
-        $message .= "📦 *Total Pengeluaran: Rp {$fTotal}*";
+        // Biaya Operasional section
+        $msg .= "💳 <b>Biaya Operasional</b>\n";
+        if ($countBiaya > 0) {
+            $msg .= "    {$countBiaya} transaksi  •  <b>" . $this->formatRupiah($totalBiaya) . "</b>\n";
 
-        $this->sendMessage($chatId, $message);
+            // Breakdown per category
+            $biayaBreakdown = Expense::whereDate('date', $today)
+                ->selectRaw('chart_of_account_id, SUM(amount) as total, COUNT(*) as count')
+                ->groupBy('chart_of_account_id')
+                ->get();
+
+            foreach ($biayaBreakdown as $item) {
+                $accName = optional(ChartOfAccount::find($item->chart_of_account_id))->name ?? 'Lainnya';
+                $escapedName = $this->escapeHtml($accName);
+                $msg .= "    ├ {$escapedName}: " . $this->formatRupiah($item->total) . "\n";
+            }
+        } else {
+            $msg .= "    <i>Belum ada transaksi</i>\n";
+        }
+
+        $msg .= "\n";
+
+        // Pembelian Bahan section
+        $msg .= "🛒 <b>Pembelian Bahan</b>\n";
+        if ($countBeli > 0) {
+            $msg .= "    {$countBeli} transaksi  •  <b>" . $this->formatRupiah($totalBeli) . "</b>\n";
+
+            // Breakdown per category
+            $beliBreakdown = Purchase::whereDate('purchase_date', $today)
+                ->selectRaw('chart_of_account_id, SUM(total_amount) as total, COUNT(*) as count')
+                ->groupBy('chart_of_account_id')
+                ->get();
+
+            foreach ($beliBreakdown as $item) {
+                $accName = optional(ChartOfAccount::find($item->chart_of_account_id))->name ?? 'Lainnya';
+                $escapedName = $this->escapeHtml($accName);
+                $msg .= "    ├ {$escapedName}: " . $this->formatRupiah($item->total) . "\n";
+            }
+        } else {
+            $msg .= "    <i>Belum ada transaksi</i>\n";
+        }
+
+        $msg .= "\n" . $this->separator() . "\n"
+              . "📦 <b>TOTAL PENGELUARAN</b>\n"
+              . "💰 <b>" . $this->formatRupiah($totalBiaya + $totalBeli) . "</b>\n"
+              . $this->separator();
+
+        $keyboard = [
+            [
+                ['text' => '🔄 Refresh', 'callback_data' => 'menu_ringkasan'],
+                ['text' => '🏠 Menu Utama', 'callback_data' => 'menu_utama'],
+            ],
+        ];
+
+        $this->sendMessageWithButtons($chatId, $msg, $keyboard);
     }
 
     /**
@@ -379,11 +588,20 @@ class TelegramBotService
      */
     protected function handleHelpCommand(string $chatId): void
     {
-        $message = "👋 *Selamat datang di N-Kitchen Bot!*\n\n";
-        $message .= "Pilih menu di bawah atau ketik perintah manual:\n\n";
-        $message .= "`/biaya [kat] [jml] [desc]`\n";
-        $message .= "`/beli [kat] [jml] [desc]`\n";
-        $message .= "`/tambah [parent] [nama]`";
+        $msg = "🍽️ <b>N-KITCHEN BOT</b>\n"
+             . $this->separator() . "\n"
+             . "Asisten Pencatatan Keuangan\n"
+             . "Pempek N'Kitchen\n"
+             . $this->separator() . "\n\n"
+             . "📋 <b>PERINTAH CEPAT:</b>\n\n"
+             . "  💳  <code>/biaya [kat] [jml] [desc]</code>\n"
+             . "      <i>Catat biaya operasional</i>\n\n"
+             . "  🛒  <code>/beli [kat] [jml] [desc]</code>\n"
+             . "      <i>Catat pembelian bahan</i>\n\n"
+             . "  ➕  <code>/tambah [jenis] [nama]</code>\n"
+             . "      <i>Tambah kategori baru</i>\n\n"
+             . $this->lightSeparator() . "\n"
+             . "Atau gunakan tombol di bawah 👇";
 
         $keyboard = [
             [
@@ -399,8 +617,12 @@ class TelegramBotService
             ],
         ];
 
-        $this->sendMessageWithButtons($chatId, $message, $keyboard);
+        $this->sendMessageWithButtons($chatId, $msg, $keyboard);
     }
+
+    // ─────────────────────────────────────────────
+    //  SUB-MENU HANDLERS
+    // ─────────────────────────────────────────────
 
     /**
      * Show biaya category selection menu
@@ -413,27 +635,38 @@ class TelegramBotService
             ->get();
 
         if ($accounts->isEmpty()) {
-            $this->sendMessage($chatId, "❌ Belum ada kategori biaya. Tambahkan dulu via menu Tambah Kategori.");
+            $msg = $this->formatHeader('📭', 'BELUM ADA KATEGORI') . "\n\n"
+                 . "Belum ada kategori biaya operasional.\n"
+                 . "Tambahkan dulu melalui menu\n"
+                 . "<b>➕ Tambah Kategori</b>.";
+
+            $keyboard = [
+                [['text' => '➕ Tambah Kategori', 'callback_data' => 'menu_tambah']],
+                [['text' => '🔙 Kembali', 'callback_data' => 'menu_utama']],
+            ];
+            $this->sendMessageWithButtons($chatId, $msg, $keyboard);
             return;
         }
 
-        $message = "💳 *CATAT BIAYA OPERASIONAL*\n\nPilih kategori:";
+        $msg = $this->formatHeader('💳', 'CATAT BIAYA OPERASIONAL') . "\n\n"
+             . "📌 Pilih kategori biaya:";
+
         $keyboard = [];
         $row = [];
 
         foreach ($accounts as $index => $acc) {
             $shortName = str_replace(['Beban ', 'Biaya '], '', $acc->name);
-            $row[] = ['text' => $shortName, 'callback_data' => 'biaya_' . $acc->id];
-            
+            $row[] = ['text' => '📄 ' . $shortName, 'callback_data' => 'biaya_' . $acc->id];
+
             if (count($row) == 2 || $index == $accounts->count() - 1) {
                 $keyboard[] = $row;
                 $row = [];
             }
         }
 
-        $keyboard[] = [['text' => '🔙 Kembali', 'callback_data' => 'menu_utama']];
+        $keyboard[] = [['text' => '🔙 Kembali ke Menu', 'callback_data' => 'menu_utama']];
 
-        $this->sendMessageWithButtons($chatId, $message, $keyboard);
+        $this->sendMessageWithButtons($chatId, $msg, $keyboard);
     }
 
     /**
@@ -447,27 +680,38 @@ class TelegramBotService
             ->get();
 
         if ($accounts->isEmpty()) {
-            $this->sendMessage($chatId, "❌ Belum ada kategori pembelian. Tambahkan dulu via menu Tambah Kategori.");
+            $msg = $this->formatHeader('📭', 'BELUM ADA KATEGORI') . "\n\n"
+                 . "Belum ada kategori pembelian bahan.\n"
+                 . "Tambahkan dulu melalui menu\n"
+                 . "<b>➕ Tambah Kategori</b>.";
+
+            $keyboard = [
+                [['text' => '➕ Tambah Kategori', 'callback_data' => 'menu_tambah']],
+                [['text' => '🔙 Kembali', 'callback_data' => 'menu_utama']],
+            ];
+            $this->sendMessageWithButtons($chatId, $msg, $keyboard);
             return;
         }
 
-        $message = "🛒 *CATAT PEMBELIAN BAHAN*\n\nPilih kategori:";
+        $msg = $this->formatHeader('🛒', 'CATAT PEMBELIAN BAHAN') . "\n\n"
+             . "📌 Pilih kategori pembelian:";
+
         $keyboard = [];
         $row = [];
 
         foreach ($accounts as $index => $acc) {
             $shortName = str_replace(['Beban ', 'Pembelian ', 'Bahan Baku '], '', $acc->name);
-            $row[] = ['text' => $shortName, 'callback_data' => 'beli_' . $acc->id];
-            
+            $row[] = ['text' => '📄 ' . $shortName, 'callback_data' => 'beli_' . $acc->id];
+
             if (count($row) == 2 || $index == $accounts->count() - 1) {
                 $keyboard[] = $row;
                 $row = [];
             }
         }
 
-        $keyboard[] = [['text' => '🔙 Kembali', 'callback_data' => 'menu_utama']];
+        $keyboard[] = [['text' => '🔙 Kembali ke Menu', 'callback_data' => 'menu_utama']];
 
-        $this->sendMessageWithButtons($chatId, $message, $keyboard);
+        $this->sendMessageWithButtons($chatId, $msg, $keyboard);
     }
 
     /**
@@ -475,16 +719,22 @@ class TelegramBotService
      */
     protected function showTambahMenu(string $chatId): void
     {
-        $message = "➕ *TAMBAH KATEGORI BARU*\n\nPilih jenis kategori:";
+        $msg = $this->formatHeader('➕', 'TAMBAH KATEGORI BARU') . "\n\n"
+             . "📌 Pilih jenis kategori yang ingin\n"
+             . "ditambahkan:";
 
         $keyboard = [
             [['text' => '🏢 Beban Operasional', 'callback_data' => 'tambah_operasional']],
             [['text' => '🥩 Beban Bahan Baku', 'callback_data' => 'tambah_bahan']],
-            [['text' => '🔙 Kembali', 'callback_data' => 'menu_utama']],
+            [['text' => '🔙 Kembali ke Menu', 'callback_data' => 'menu_utama']],
         ];
 
-        $this->sendMessageWithButtons($chatId, $message, $keyboard);
+        $this->sendMessageWithButtons($chatId, $msg, $keyboard);
     }
+
+    // ─────────────────────────────────────────────
+    //  PROMPT HANDLERS
+    // ─────────────────────────────────────────────
 
     /**
      * Prompt user to input biaya amount and description
@@ -495,14 +745,17 @@ class TelegramBotService
         if (!$account) return;
 
         $keyword = strtolower(str_replace(['Beban ', 'Biaya '], '', $account->name));
-        $message = "💳 *Catat Biaya: {$account->name}*\n\n";
-        $message .= "Ketik dengan format:\n";
-        $message .= "`/biaya {$keyword} [jumlah] [keterangan]`\n\n";
-        $message .= "Contoh:\n";
-        $message .= "`/biaya {$keyword} 500000 Pembayaran bulan ini`";
+        $escapedName = $this->escapeHtml($account->name);
 
-        $keyboard = [[['text' => '🔙 Kembali', 'callback_data' => 'menu_biaya']]];
-        $this->sendMessageWithButtons($chatId, $message, $keyboard);
+        $msg = $this->formatHeader('💳', 'CATAT BIAYA') . "\n\n"
+             . "📁 Kategori: <b>{$escapedName}</b>\n\n"
+             . "📋 <b>Ketik dengan format:</b>\n"
+             . "<code>/biaya {$keyword} [jumlah] [keterangan]</code>\n\n"
+             . "💡 <b>Contoh:</b>\n"
+             . "<code>/biaya {$keyword} 500000 Pembayaran bulan ini</code>";
+
+        $keyboard = [[['text' => '🔙 Kembali ke Kategori', 'callback_data' => 'menu_biaya']]];
+        $this->sendMessageWithButtons($chatId, $msg, $keyboard);
     }
 
     /**
@@ -514,14 +767,17 @@ class TelegramBotService
         if (!$account) return;
 
         $keyword = strtolower(str_replace(['Beban ', 'Pembelian ', 'Bahan Baku '], '', $account->name));
-        $message = "🛒 *Catat Pembelian: {$account->name}*\n\n";
-        $message .= "Ketik dengan format:\n";
-        $message .= "`/beli {$keyword} [jumlah] [keterangan]`\n\n";
-        $message .= "Contoh:\n";
-        $message .= "`/beli {$keyword} 300000 Beli 10kg`";
+        $escapedName = $this->escapeHtml($account->name);
 
-        $keyboard = [[['text' => '🔙 Kembali', 'callback_data' => 'menu_beli']]];
-        $this->sendMessageWithButtons($chatId, $message, $keyboard);
+        $msg = $this->formatHeader('🛒', 'CATAT PEMBELIAN') . "\n\n"
+             . "📁 Kategori: <b>{$escapedName}</b>\n\n"
+             . "📋 <b>Ketik dengan format:</b>\n"
+             . "<code>/beli {$keyword} [jumlah] [keterangan]</code>\n\n"
+             . "💡 <b>Contoh:</b>\n"
+             . "<code>/beli {$keyword} 300000 Beli 10kg</code>";
+
+        $keyboard = [[['text' => '🔙 Kembali ke Kategori', 'callback_data' => 'menu_beli']]];
+        $this->sendMessageWithButtons($chatId, $msg, $keyboard);
     }
 
     /**
@@ -530,15 +786,22 @@ class TelegramBotService
     protected function promptTambahInput(string $chatId, string $parentType): void
     {
         $parentName = $parentType === 'operasional' ? 'Beban Operasional' : 'Beban Bahan Baku';
-        $message = "➕ *Tambah Kategori: {$parentName}*\n\n";
-        $message .= "Ketik dengan format:\n";
-        $message .= "`/tambah {$parentType} [nama kategori]`\n\n";
-        $message .= "Contoh:\n";
-        $message .= "`/tambah {$parentType} Biaya Internet`";
+        $parentEmoji = $parentType === 'operasional' ? '🏢' : '🥩';
 
-        $keyboard = [[['text' => '🔙 Kembali', 'callback_data' => 'menu_tambah']]];
-        $this->sendMessageWithButtons($chatId, $message, $keyboard);
+        $msg = $this->formatHeader('➕', 'TAMBAH KATEGORI') . "\n\n"
+             . "{$parentEmoji} Parent: <b>{$parentName}</b>\n\n"
+             . "📋 <b>Ketik dengan format:</b>\n"
+             . "<code>/tambah {$parentType} [nama kategori]</code>\n\n"
+             . "💡 <b>Contoh:</b>\n"
+             . "<code>/tambah {$parentType} Biaya Internet</code>";
+
+        $keyboard = [[['text' => '🔙 Kembali ke Jenis', 'callback_data' => 'menu_tambah']]];
+        $this->sendMessageWithButtons($chatId, $msg, $keyboard);
     }
+
+    // ─────────────────────────────────────────────
+    //  TELEGRAM API METHODS
+    // ─────────────────────────────────────────────
 
     /**
      * Send message to Telegram chat
@@ -549,7 +812,7 @@ class TelegramBotService
             Http::post("https://api.telegram.org/bot{$this->token}/sendMessage", [
                 'chat_id' => $chatId,
                 'text' => $message,
-                'parse_mode' => 'Markdown',
+                'parse_mode' => 'HTML',
             ]);
         } catch (\Exception $e) {
             Log::error('Telegram: Failed to send message', ['error' => $e->getMessage()]);
@@ -565,7 +828,7 @@ class TelegramBotService
             Http::post("https://api.telegram.org/bot{$this->token}/sendMessage", [
                 'chat_id' => $chatId,
                 'text' => $message,
-                'parse_mode' => 'Markdown',
+                'parse_mode' => 'HTML',
                 'reply_markup' => json_encode(['inline_keyboard' => $keyboard]),
             ]);
         } catch (\Exception $e) {
