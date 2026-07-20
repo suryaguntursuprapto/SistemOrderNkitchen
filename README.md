@@ -10,48 +10,6 @@ Pastikan server Anda memenuhi persyaratan berikut:
 *   **Composer**: Versi terbaru
 *   **Node.js & NPM**: Untuk compile assets
 
-## 🛠️ Instalasi
-
-Ikuti langkah-langkah berikut untuk menjalankan project di local environment:
-
-1.  **Clone Repository**
-    ```bash
-    git clone [url-repository]
-    cd SistemPempek
-    ```
-
-2.  **Install PHP Dependencies**
-    ```bash
-    composer install
-    ```
-
-3.  **Install & Compile Frontend Assets**
-    ```bash
-    npm install
-    npm run build
-    ```
-
-4.  **Konfigurasi Environment**
-    Salin file `.env.example` menjadi `.env` dan sesuaikan konfigurasi database serta API keys.
-    ```bash
-    cp .env.example .env
-    php artisan key:generate
-    ```
-
-5.  **Migrasi Database**
-    Jalankan migrasi untuk membuat tabel-tabel database.
-    ```bash
-    php artisan migrate
-    ```
-    *Opsional: Jalankan seeder untuk data dummy*
-    ```bash
-    php artisan db:seed
-    ```
-
-6.  **Jalankan Server**
-    ```bash
-    php artisan serve
-    ```
 
 ## 📦 Dependencies Utama
 
@@ -120,7 +78,3 @@ Project ini menggunakan library berikut:
 #### 5. Laporan
 *   **Laporan Penjualan**: Rekapitulasi transaksi yang bisa diexport ke Excel.
 
-## 🔑 Akun Demo (Jika Menggunakan Seeder)
-
-*   **Admin**: `admin@gmail.com` / `password`
-*   **Customer**: `customer@gmail.com` / `password`
